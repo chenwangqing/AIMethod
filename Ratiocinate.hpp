@@ -17,10 +17,12 @@
 #define __Ratiocinate_HPP__
 #include "Tools.CV.hpp"
 
+// 启用 ONNX Runtime 支持动态输入
 #ifndef EN_ONNXRUNTIME
 #define EN_ONNXRUNTIME 1
 #endif
 
+// 启用GPU加速
 #ifndef EN_GPU
 #define EN_GPU 0
 #endif
@@ -68,6 +70,11 @@ public:
 
     /**
      * @brief    执行回调
+     * @param    infer         推理接口
+     * @param    inputs        输入参数
+     * @param    results       推理结果
+     * @param    context       用户上下文
+     * @param    err           错误信息
      * @author   CXS (chenxiangshu@outlook.com)
      * @date     2024-01-10
      */
@@ -114,6 +121,7 @@ public:
 
     /**
      * @brief    获取IO信息
+     * @param    isOutput      true: 输出参数 false：输入参数
      * @return   const IOInfo&
      * @author   CXS (chenxiangshu@outlook.com)
      * @date     2024-01-10

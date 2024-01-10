@@ -162,18 +162,29 @@ private:
     }
 
 public:
+    virtual ~Ratiocinate()
+    {
+        if (this->session != nullptr)
+            delete this->session;
+        return;
+    }
+
     virtual std::string LoadModel(const Parameters &params) override
     {
         this->is_normal = params.is_normal;
         Ort::SessionOptions options;
-        options.SetIntraOpNumThreads(params.threads);   // 设置线程数量
-        this->session = new Ort::Session{this->env, params.model, options};
+        // 设置线程数量
+        options.SetIntraOpNumThreads(params.threads);
+        // ORT_ENABLE_ALL: 启用所有可能的优化
+        options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
+        try {
+            this->session = new Ort::Session{this->env, params.model, options};
+        }
+        catch (std::exception &e) {
+            return e.what();
+        }
         if (this->session == nullptr)
             return "Failed to create a session";
-        if (this->session->GetInputCount() != 1)
-            return "The number of model inputs is not 1";
-        if (this->session->GetOutputCount() != 1)
-            return "The number of model outputs is not 1";
         // 获取输入/输出信息
         Ort::AllocatorWithDefaultOptions allocator;
         for (size_t i = 0; i < this->session->GetInputCount(); i++) {
@@ -267,6 +278,82 @@ public:
         catch (std::exception &e) {
             err = e.what();
             this->is_runing.fetch_sub(1);
+        }
+        return err;
+    }
+
+    virtual std::string ExecAsync(const std::map<std::string, std::vector<cv::Mat>> &inputs,
+                                  cv::Size2i                                         size) override
+    {
+        int flag = 0;
+        if (!this->is_runing.compare_exchange_strong(flag, 1))
+            return "A task is running";
+        auto ret = _ExecAsync(inputs, size);
+        this->is_runing.fetch_sub(1);
+        return ret;
+    }
+
+    virtual bool IsRun() override
+    {
+        return this->is_runing.load() != 0;
+    }
+};
+#else
+// TODO: 未完成
+#include <opencv4/opencv2/dnn.hpp>
+class Ratiocinate : public IRatiocinate {
+private:
+    cv::dnn::Net       *session = nullptr;
+    bool                is_normal;   // 输入归一化
+    std::vector<IOInfo> input;
+    std::vector<IOInfo> output;
+
+    class InputData {
+    public:
+        std::vector<cv::Mat>          imgs;   // 图像
+        std::vector<Tools::Letterbox> lets;   // 修正信息
+        cv::Mat                       data;
+    };
+
+public:
+    virtual ~Ratiocinate()
+    {
+        if (this->session != nullptr)
+            delete this->session;
+        return;
+    }
+
+    virtual std::string LoadModel(const Parameters &params) override
+    {
+        this->is_normal = params.is_normal;
+        try {
+            this->session = new cv::dnn::Net(cv::dnn::readNetFromONNX(params.model));
+        }
+        catch (std::exception ex) {
+            return ex.what();
+        }
+        if (this->session == nullptr || this->session->empty())
+            return "Failed to create a session";
+        return std::string();
+    }
+
+    virtual const std::vector<IOInfo> &GetIOInfo(bool isOutput) const override
+    {
+        return isOutput ? this->output : this->input;
+    }
+
+    std::string _ExecAsync(const std::map<std::string, std::vector<cv::Mat>> &inputs,
+                           cv::Size2i                                         size)
+    {
+        std::string err;
+        if (inputs.size() != 1 || inputs.begin()->second.size() != 1)
+            return "parameter error";
+        for (auto &in : inputs) {
+            InputData dat;
+            dat.imgs = in.second;
+            auto d   = GetImageBGRValue(dat.imgs, this->is_normal, size, err, dat.lets);
+            if (d.empty())
+                return err;
         }
         return err;
     }

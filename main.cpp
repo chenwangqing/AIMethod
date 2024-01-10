@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include <string>
 #include <stdio.h>
-#include "onnxruntime_cxx_api.h"
+#include <onnxruntime_cxx_api.h>
 #include <opencv4/opencv2/opencv.hpp>
 
 #include <sys/time.h>
@@ -51,7 +51,8 @@ int main(int argc, char **argv)
     std::string              err;
     auto                     infer = Ratiocinate_Create();
     IRatiocinate::Parameters parameters;
-    parameters.model     = "./best.onnx";
+    parameters.model = "./best-dynamic.onnx";
+    // parameters.model     = "./best-static.onnx";
     parameters.threads   = 2;
     parameters.is_normal = true;
     err                  = infer->LoadModel(parameters);
