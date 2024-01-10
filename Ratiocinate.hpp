@@ -16,7 +16,6 @@
 #if !defined(__Ratiocinate_HPP__)
 #define __Ratiocinate_HPP__
 #include "Tools.CV.hpp"
-#include <map>
 
 #ifndef EN_ONNXRUNTIME
 #define EN_ONNXRUNTIME 1
@@ -31,19 +30,29 @@
  * @author   CXS (chenxiangshu@outlook.com)
  * @date     2024-01-10
  */
-class IRatiocinate
-{
+class IRatiocinate {
+protected:
+    std::atomic<int> is_runing;   // 正在运行
+
 public:
+    IRatiocinate() :
+        is_runing(0)
+    {
+    }
+
+    virtual ~IRatiocinate() = default;
+
+    virtual bool IsRun() = 0;
+
     /**
      * @brief    结果
      * @author   CXS (chenxiangshu@outlook.com)
      * @date     2024-01-10
      */
-    class Result
-    {
+    class Result {
     public:
-        std::vector<int64_t> shape; // 形状
-        float *data;                // 结果数据
+        std::vector<int64_t> shape;   // 形状
+        float               *data;    // 结果数据
     };
 
     /**
@@ -51,11 +60,10 @@ public:
      * @author   CXS (chenxiangshu@outlook.com)
      * @date     2024-01-10
      */
-    class Input
-    {
+    class Input {
     public:
-        std::vector<cv::Mat> imgs;          // 图像数据
-        std::vector<Tools::Letterbox> lets; // 图像修正
+        std::vector<cv::Mat>          imgs;   // 图像数据
+        std::vector<Tools::Letterbox> lets;   // 图像修正
     };
 
     /**
@@ -63,10 +71,10 @@ public:
      * @author   CXS (chenxiangshu@outlook.com)
      * @date     2024-01-10
      */
-    typedef void (*ExecCallback_t)(const std::map<std::string, IRatiocinate::Input> &inputs,
+    typedef void (*ExecCallback_t)(const std::map<std::string, IRatiocinate::Input>  &inputs,
                                    const std::map<std::string, IRatiocinate::Result> &result,
-                                   void *context,
-                                   const std::string &err);
+                                   void                                              *context,
+                                   const std::string                                 &err);
 
     /**
      * @brief    参数
@@ -75,9 +83,9 @@ public:
      */
     typedef struct
     {
-        const char *model; // 模型文件
-        int threads;       // 线程数量
-        bool is_normal;    // 输入归一化
+        const char *model;       // 模型文件
+        int         threads;     // 线程数量
+        bool        is_normal;   // 输入归一化
     } Parameters;
 
     /**
@@ -87,12 +95,12 @@ public:
      */
     typedef struct
     {
-        std::string name;           // 名称
-        std::vector<int64_t> shape; // 形状
+        std::string          name;    // 名称
+        std::vector<int64_t> shape;   // 形状
     } IOInfo;
 
-    ExecCallback_t callback = nullptr; // 执行回调
-    void *callback_context = nullptr;  // 用户上下文
+    ExecCallback_t callback         = nullptr;   // 执行回调
+    void          *callback_context = nullptr;   // 用户上下文
 
     /**
      * @brief    加载模型
@@ -120,8 +128,7 @@ public:
      * @date     2024-01-10
      */
     virtual std::string ExecAsync(const std::map<std::string, std::vector<cv::Mat>> &inputs,
-                                  cv::Size2i size = cv::Size2i()) = 0;
-    virtual ~IRatiocinate() = default;
+                                  cv::Size2i                                         size = cv::Size2i()) = 0;
 };
 
 /**
@@ -132,4 +139,4 @@ public:
  */
 extern IRatiocinate *Ratiocinate_Create();
 
-#endif // __Ratiocinate_HPP__
+#endif   // __Ratiocinate_HPP__

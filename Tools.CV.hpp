@@ -16,6 +16,11 @@
 #if !defined(__Tools_CV_hpp__)
 #define __Tools_CV_hpp__
 #include <stdint.h>
+#include <atomic>
+#include <map>
+#include <string>
+#include <vector>
+#include <list>
 #include <opencv4/opencv2/opencv.hpp>
 
 namespace Tools

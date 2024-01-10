@@ -64,7 +64,7 @@ int main(int argc, char **argv)
     imgs.push_back(cv::imread("./img/1.jpg"));
     imgs.push_back(cv::imread("./img/2.jpg"));
     err = inter->ExecAsync({{name, imgs}}, {416, 416});
-    while (true)
+    while (inter->IsRun())
         sleep(1);
     return 0;
 }
