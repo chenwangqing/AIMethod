@@ -15,56 +15,15 @@
  */
 #if !defined(__TargetDetection_HPP__)
 #define __TargetDetection_HPP__
-#include "Tools.CV.hpp"
-
-#ifndef EN_ONNXRUNTIME
-#define EN_ONNXRUNTIME 1
-#endif
-
-#ifndef EN_GPU
-#define EN_GPU 0
-#endif
+#include "Ratiocinate.hpp"
 
 /**
  * @brief    目标检测
  * @author   CXS (chenxiangshu@outlook.com)
  * @date     2024-01-09
  */
-class TargetDetection
-{
-protected:
-    bool isRun = false;
-
-    /**
-     * @brief    加载权重
-     * @param    filename       权重文件
-     * @return   true
-     * @return   false
-     * @author   CXS (chenxiangshu@outlook.com)
-     * @date     2024-01-09
-     */
-    virtual std::string Load_Weight(const char *filename, size_t threads)
-    {
-        return std::string();
-    }
-
+class TargetDetection {
 public:
-    float confidence_threshold = 0.25f; // 置信度阈值
-    float nms_threshold = 0.2f;         // NMS算法阈值
-
-    virtual ~TargetDetection() {}
-
-    /**
-     * @brief    获取输入形状
-     * @return   Shape
-     * @author   CXS (chenxiangshu@outlook.com)
-     * @date     2024-01-09
-     */
-    virtual cv::Size2i GetInputShape() const
-    {
-        return cv::Size2i();
-    }
-
     /**
      * @brief    结果
      * @author   CXS (chenxiangshu@outlook.com)
@@ -72,109 +31,36 @@ public:
      */
     typedef struct
     {
-        int classId;      // 类别
-        float confidence; // 置信度
-        cv::Rect box;     // 盒子信息
+        int      classId;      // 类别
+        float    confidence;   // 置信度
+        cv::Rect box;          // 盒子信息
     } Result;
 
+    float confidence_threshold = 0.25f;   // 置信度阈值
+    float nms_threshold        = 0.2f;    // NMS算法阈值
+
     /**
-     * @brief    检测回调
+     * @brief    Yolo检测
+     * @param    input          推理结果
+     * @param    lets           图像形变
+     * @return   std::vector<std::vector<TargetDetection::Result>>
      * @author   CXS (chenxiangshu@outlook.com)
-     * @date     2024-01-09
+     * @date     2024-01-10
      */
-    typedef void (*Detection_Callback)(TargetDetection *det,
-                                       std::vector<std::vector<Result>> &results,
-                                       void *context,
-                                       const std::string &err);
-
-protected:
-    Detection_Callback callback = nullptr;
-    void *user_context = nullptr;
-
-public:
-    /**
-     * @brief    设置回调
-     * @param    callback
-     * @author   CXS (chenxiangshu@outlook.com)
-     * @date     2024-01-09
-     */
-    void SetDetectionCallback(Detection_Callback callback,
-                              void *context)
-    {
-        this->callback = callback;
-        this->user_context = context;
-        return;
-    }
+    std::vector<std::vector<TargetDetection::Result>> Yolo(const IRatiocinate::Result          &input,
+                                                           const std::vector<Tools::Letterbox> &lets);
 
     /**
-     * @brief    检测
-     * @param    imgs           输入图片 BGR 格式
-     * @param    is_normal      是否归一化
-     * @param    err            错误信息
-     * @return   std::vector<std::vector<Result>>
-     * @author   CXS (chenxiangshu@outlook.com)
-     * @date     2024-01-09
-     */
-    virtual std::string DetectionAsync(const std::vector<cv::Mat> &imgs,
-                                       bool is_normal)
-    {
-        return "Function not implemented";
-    }
-
-    /**
-     * @brief    检测
-     * @param    imgs           输入图片 BGR 格式
-     * @param    is_normal      是否归一化
-     * @return   std::vector<std::vector<Result>>
-     * @author   CXS (chenxiangshu@outlook.com)
-     * @date     2024-01-09
-     */
-    std::string DetectionAsync(const cv::Mat &img,
-                               bool is_normal)
-    {
-        std::vector<cv::Mat> imgs{img};
-        return DetectionAsync(imgs, is_normal);
-    }
-
-    /**
-     * @brief    清理缓存
-     * @author   CXS (chenxiangshu@outlook.com)
-     * @date     2024-01-09
-     */
-    virtual void CleanCache() {}
-
-    /**
-     * @brief    正在运行
-     * @return   true
-     * @return   false
-     * @author   CXS (chenxiangshu@outlook.com)
-     * @date     2024-01-09
-     */
-    bool IsRun() const
-    {
-        return this->isRun;
-    }
-
-    /**
-     * @brief    创建目标检测
-     * @param    weight         权重文件 输入：[1,3,height,width] 输出：[批量,数量,结果]
-     * @param    err            错误信息
-     * @note     结果：[center x,center y,width,height,盒子概率,类别1概率,...,类别n概率]
-     * @return   ITargetDetection*
-     * @author   CXS (chenxiangshu@outlook.com)
-     * @date     2024-01-09
-     */
-    static TargetDetection *Make(const char *weight, size_t threads, std::string &err);
-
-    /**
-     * @brief    绘制盒子
-     * @param    img            图片
+     * @brief    画盒子
+     * @param    img            图像
      * @param    result         结果
      * @param    color          颜色
      * @author   CXS (chenxiangshu@outlook.com)
-     * @date     2024-01-09
+     * @date     2024-01-10
      */
-    static void DrawBox(cv::Mat &img, const std::vector<Result> &result, const cv::Scalar &color);
+    static void DrawBox(cv::Mat                   &img,
+                        const std::vector<Result> &result,
+                        const cv::Scalar          &color = cv::Scalar(0, 0, 255));
 };
 
-#endif // __TargetDetection_HPP__
+#endif   // __TargetDetection_HPP__

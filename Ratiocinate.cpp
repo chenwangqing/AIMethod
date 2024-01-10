@@ -126,33 +126,38 @@ private:
         return;
     }
 
-    static void RunAsyncCallbackFn(void *user_data, OrtValue **outputs, size_t num_outputs, OrtStatusPtr status_ptr)
+    static void RunAsyncCallbackFn(void        *user_data,
+                                   OrtValue   **outputs,
+                                   size_t       num_outputs,
+                                   OrtStatusPtr status_ptr)
     {
-        Ratiocinate *det = static_cast<Ratiocinate *>(user_data);
+        Ratiocinate *infer = static_cast<Ratiocinate *>(user_data);
         Ort::Status  status(status_ptr);
-        if (det->callback != nullptr) {
+        if (infer->callback != nullptr) {
             std::map<std::string, Result> result;
             std::map<std::string, Input>  inputs;
-            for (size_t i = 0; i < det->status.input_names.size(); i++) {
+            for (size_t i = 0; i < infer->status.input_names.size(); i++) {
                 Input p;
-                p.imgs                             = std::move(det->status.input_data[i].imgs);
-                p.lets                             = std::move(det->status.input_data[i].lets);
-                inputs[det->status.input_names[i]] = p;
+                p.imgs = std::move(infer->status.input_data[i].imgs);
+                p.lets = std::move(infer->status.input_data[i].lets);
+
+                inputs[infer->status.input_names[i]] = p;
             }
             if (status.IsOK()) {
-                for (size_t i = 0; i < det->status.output_names.size(); i++) {
+                for (size_t i = 0; i < infer->status.output_names.size(); i++) {
                     Result ret;
-                    ret.data                            = det->status.output_tensors[i].GetTensorMutableData<float>();
-                    ret.shape                           = det->status.output_tensors[i].GetTensorTypeAndShapeInfo().GetShape();
-                    result[det->status.output_names[i]] = (ret);
+                    ret.data  = infer->status.output_tensors[i].GetTensorMutableData<float>();
+                    ret.shape = infer->status.output_tensors[i].GetTensorTypeAndShapeInfo().GetShape();
+
+                    result[infer->status.output_names[i]] = ret;
                 }
-                det->callback(inputs, result, det->callback_context, std::string());
+                infer->callback(infer, inputs, result, infer->callback_context, std::string());
             } else {
-                det->callback(inputs, result, det->callback_context, status.GetErrorMessage());
+                infer->callback(infer, inputs, result, infer->callback_context, status.GetErrorMessage());
             }
         }
-        det->ClearStatus();
-        det->is_runing.fetch_sub(1);
+        infer->ClearStatus();
+        infer->is_runing.fetch_sub(1);
         return;
     }
 

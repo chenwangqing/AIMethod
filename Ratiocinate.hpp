@@ -71,10 +71,11 @@ public:
      * @author   CXS (chenxiangshu@outlook.com)
      * @date     2024-01-10
      */
-    typedef void (*ExecCallback_t)(const std::map<std::string, IRatiocinate::Input>  &inputs,
-                                   const std::map<std::string, IRatiocinate::Result> &result,
-                                   void                                              *context,
-                                   const std::string                                 &err);
+    typedef void (*ExecCallback_t)(IRatiocinate                                *infer,
+                                   std::map<std::string, IRatiocinate::Input>  &inputs,
+                                   std::map<std::string, IRatiocinate::Result> &results,
+                                   void                                        *context,
+                                   const std::string                           &err);
 
     /**
      * @brief    参数
