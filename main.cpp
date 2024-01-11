@@ -58,7 +58,6 @@ int main(int argc, char **argv)
     parameters.model = "./best-dynamic.onnx";
     // parameters.model     = "./best-static.onnx";
     parameters.threads   = 2;
-    parameters.is_normal = true;
     err                  = infer->LoadModel(parameters);
     infer->callback      = ExecCallback;
 
