@@ -61,8 +61,9 @@ namespace AIMethod {
                 confidences.push_back(confidence);
             }
             // NMS处理
-            std::vector<int> indices;
-            cv::dnn::NMSBoxes(boxs, confidences, confidence_threshold, nms_threshold, indices);
+            std::vector<int>   indices;
+            std::vector<float> update_confidences;
+            cv::dnn::softNMSBoxes(boxs, confidences, update_confidences, confidence_threshold, nms_threshold, indices);
             std::vector<TargetDetection::Result> rs;
             auto                                &let = lets[k];
             for (auto idx : indices) {
