@@ -48,10 +48,10 @@ namespace Tools {
         return scaled_box;
     }
 
-    Tensor<float> ImageBGRToNCHW(const std::vector<cv::Mat>    &imgs,
-                                 const cv::Size2i              &size,
-                                 std::vector<Tools::Letterbox> &lets,
-                                 std::string                   &err)
+    AIMethod::Tensor<float> ImageBGRToNCHW(const std::vector<cv::Mat>    &imgs,
+                                           const cv::Size2i              &size,
+                                           std::vector<Tools::Letterbox> &lets,
+                                           std::string                   &err)
     {
         int                block_size = size.height * size.width * 3;
         std::vector<float> tmp(imgs.size() * block_size);
@@ -61,7 +61,7 @@ namespace Tools {
             float *data = tmp.data() + i * block_size;
             if (img.size().empty()) {
                 err = "The picture cannot be empty";
-                return Tensor<float>();
+                return AIMethod::Tensor<float>();
             }
             if (img.type() != CV_32FC3) {
                 img.convertTo(img_f32, CV_32FC3);   // 转float
@@ -69,11 +69,11 @@ namespace Tools {
             }
             if (img.channels() != 3) {
                 err = "The picture must be 3 channels";
-                return Tensor<float>();
+                return AIMethod::Tensor<float>();
             }
             if (img.type() != CV_32FC3) {
                 err = "Image data type conversion failed. Procedure";
-                return Tensor<float>();
+                return AIMethod::Tensor<float>();
             }
             // 图像变换
             Tools::Letterbox let;
@@ -90,7 +90,7 @@ namespace Tools {
                 }
             }
         }
-        return Tensor<float>({(int)imgs.size(), 3, size.height, size.width}, std::move(tmp));
+        return AIMethod::Tensor<float>({(int)imgs.size(), 3, size.height, size.width}, std::move(tmp));
     }
-    
+
 }   // namespace Tools

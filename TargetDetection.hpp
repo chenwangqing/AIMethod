@@ -17,50 +17,51 @@
 #define __TargetDetection_HPP__
 #include "Ratiocinate.hpp"
 
-/**
- * @brief    目标检测
- * @author   CXS (chenxiangshu@outlook.com)
- * @date     2024-01-09
- */
-class TargetDetection {
-public:
+namespace AIMethod {
     /**
-     * @brief    结果
+     * @brief    目标检测
      * @author   CXS (chenxiangshu@outlook.com)
      * @date     2024-01-09
      */
-    class Result {
+    class TargetDetection {
     public:
-        int      classId;      // 类别
-        float    confidence;   // 置信度
-        cv::Rect box;          // 盒子信息
+        /**
+         * @brief    结果
+         * @author   CXS (chenxiangshu@outlook.com)
+         * @date     2024-01-09
+         */
+        class Result {
+        public:
+            int      classId;      // 类别
+            float    confidence;   // 置信度
+            cv::Rect box;          // 盒子信息
+        };
+
+        float confidence_threshold = 0.25f;   // 置信度阈值
+        float nms_threshold        = 0.2f;    // NMS算法阈值
+
+        /**
+         * @brief    Yolo检测
+         * @param    input          推理结果
+         * @param    lets           图像形变
+         * @return   std::vector<std::vector<TargetDetection::Result>>
+         * @author   CXS (chenxiangshu@outlook.com)
+         * @date     2024-01-10
+         */
+        std::vector<std::vector<TargetDetection::Result>> Yolo(const Tensor<float>                 &input,
+                                                               const std::vector<Tools::Letterbox> &lets);
+
+        /**
+         * @brief    画盒子
+         * @param    img            图像
+         * @param    result         结果
+         * @param    color          颜色
+         * @author   CXS (chenxiangshu@outlook.com)
+         * @date     2024-01-10
+         */
+        static void DrawBox(cv::Mat                   &img,
+                            const std::vector<Result> &result,
+                            const cv::Scalar          &color = cv::Scalar(0, 0, 255));
     };
-
-    float confidence_threshold = 0.25f;   // 置信度阈值
-    float nms_threshold        = 0.2f;    // NMS算法阈值
-
-    /**
-     * @brief    Yolo检测
-     * @param    input          推理结果
-     * @param    lets           图像形变
-     * @return   std::vector<std::vector<TargetDetection::Result>>
-     * @author   CXS (chenxiangshu@outlook.com)
-     * @date     2024-01-10
-     */
-    std::vector<std::vector<TargetDetection::Result>> Yolo(const Tensor<float>                 &input,
-                                                           const std::vector<Tools::Letterbox> &lets);
-
-    /**
-     * @brief    画盒子
-     * @param    img            图像
-     * @param    result         结果
-     * @param    color          颜色
-     * @author   CXS (chenxiangshu@outlook.com)
-     * @date     2024-01-10
-     */
-    static void DrawBox(cv::Mat                   &img,
-                        const std::vector<Result> &result,
-                        const cv::Scalar          &color = cv::Scalar(0, 0, 255));
-};
-
+}   // namespace AIMethod
 #endif   // __TargetDetection_HPP__

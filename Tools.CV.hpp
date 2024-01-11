@@ -78,7 +78,7 @@ namespace Tools {
      * @author   CXS (chenxiangshu@outlook.com)
      * @date     2024-01-11
      */
-    extern Tensor<float> ImageBGRToNCHW(const std::vector<cv::Mat>    &imgs,
+    extern AIMethod::Tensor<float> ImageBGRToNCHW(const std::vector<cv::Mat>    &imgs,
                                         const cv::Size2i              &size,
                                         std::vector<Tools::Letterbox> &lets,
                                         std::string                   &err);

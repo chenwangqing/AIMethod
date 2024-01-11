@@ -15,6 +15,8 @@
 
 #include "Tensor.hpp"
 
+using namespace AIMethod;
+
 std::vector<Tools::Letterbox> lets;
 std::vector<cv::Mat>          imgs;
 
@@ -57,9 +59,9 @@ int main(int argc, char **argv)
     IRatiocinate::Parameters parameters;
     parameters.model = "./best-dynamic.onnx";
     // parameters.model     = "./best-static.onnx";
-    parameters.threads   = 2;
-    err                  = infer->LoadModel(parameters);
-    infer->callback      = ExecCallback;
+    parameters.threads = 2;
+    err                = infer->LoadModel(parameters);
+    infer->callback    = ExecCallback;
 
     auto name = infer->GetIOInfo(false)[0].name;
     imgs.push_back(cv::imread("./img/1.jpg"));
