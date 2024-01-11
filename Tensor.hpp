@@ -27,6 +27,7 @@
 #include <algorithm>
 #include <sstream>
 #include <iomanip>
+#include <mutex>
 
 /**
  * @brief    张量
@@ -39,8 +40,11 @@ class Tensor {
 private:
     class Node {
     public:
-        std::vector<T> data;
-        int            ref_count = 1;
+        std::vector<T>   data;
+        std::atomic<int> ref_count;
+
+        Node() :
+            ref_count(1) {}
     };
 
     Node            *node = nullptr;
@@ -55,15 +59,14 @@ private:
      */
     void Separation()
     {
-        if (node == nullptr)
+        if (this->node == nullptr)
             return;
-        node->ref_count--;
-        if (node->ref_count == 0)
-            delete node;
-        node = nullptr;
-        data = nullptr;
-        shape.clear();
-        shape_index.clear();
+        if (this->node->ref_count.fetch_sub(1) == 1)
+            delete this->node;
+        this->node = nullptr;
+        this->data = nullptr;
+        this->shape.clear();
+        this->shape_index.clear();
         return;
     }
 
@@ -82,7 +85,9 @@ private:
     }
 
 public:
-    Tensor() {}
+    Tensor()
+    {
+    }
 
     virtual ~Tensor()
     {
@@ -92,12 +97,14 @@ public:
 
     Tensor(const Tensor &ps)
     {
-        this->node        = ps.node;
+        if (ps.node == nullptr)
+            return;
+        this->node = ps.node;
+        if (this->node != nullptr)
+            this->node->ref_count.fetch_add(1);
         this->shape       = ps.shape;
         this->data        = ps.data;
         this->shape_index = ps.shape_index;
-        if (this->node != nullptr)
-            this->node->ref_count++;
         return;
     }
 
@@ -199,8 +206,8 @@ public:
         this->shape       = ps.shape;
         this->data        = ps.data;
         this->shape_index = ps.shape_index;
-        if (this->node == nullptr)
-            this->node->ref_count++;
+        if (this->node != nullptr)
+            this->node->ref_count.fetch_add(1);
         return *this;
     }
 
@@ -461,7 +468,7 @@ private:
         if (r + idx > s) return Tensor();
         Tensor ret;
         ret.node = this->node;
-        ret.node->ref_count++;
+        ret.node->ref_count.fetch_add(1);
         ret.shape = shape;
         ret.data  = this->data + idx;
         ret.MakeIndex();

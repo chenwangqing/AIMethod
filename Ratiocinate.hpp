@@ -50,6 +50,7 @@ public:
     /**
      * @brief    执行回调
      * @param    infer         推理接口
+     * @param    inputs        推理输入
      * @param    results       推理结果
      * @param    context       用户上下文
      * @param    err           错误信息
@@ -57,6 +58,7 @@ public:
      * @date     2024-01-10
      */
     typedef void (*ExecCallback_t)(IRatiocinate                         *infer,
+                                   std::map<std::string, Tensor<float>> &inputs,
                                    std::map<std::string, Tensor<float>> &results,
                                    void                                 *context,
                                    const std::string                    &err);
@@ -70,7 +72,6 @@ public:
     {
         const char *model;       // 模型文件
         int         threads;     // 线程数量
-        bool        is_normal;   // 输入归一化
     } Parameters;
 
     /**

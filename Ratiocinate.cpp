@@ -19,45 +19,21 @@ private:
     Ort::MemoryInfo           memory{nullptr};
     std::vector<IOInfo>       input;
     std::vector<IOInfo>       output;
-    bool                      is_normal;      // 输入归一化
     std::vector<const char *> input_names;    // 输入名称
     std::vector<const char *> output_names;   // 输除名称
 
-    class InputData {
-    public:
-        std::vector<cv::Mat>          imgs;             // 图像
-        std::vector<Tools::Letterbox> lets;             // 修正信息
-        std::vector<float>            data;             // 数据
-        const IOInfo                 *info = nullptr;   // IO信息
-
-        InputData() {}
-        InputData(InputData &&dat)
-        {
-            this->imgs = std::move(dat.imgs);
-            this->lets = std::move(dat.lets);
-            this->data = std::move(dat.data);
-            this->info = dat.info;
-        }
-
-        void operator=(InputData &&dat)
-        {
-            this->imgs = std::move(dat.imgs);
-            this->lets = std::move(dat.lets);
-            this->data = std::move(dat.data);
-            this->info = dat.info;
-        }
-    };
-
     struct
     {
-        std::vector<Ort::Value> input_tensors;    // 输入张量
-        std::vector<Ort::Value> output_tensors;   // 输出张量
+        std::map<std::string, Tensor<float>> inputs_data;      // 输入数据
+        std::vector<Ort::Value>              input_tensors;    // 输入张量
+        std::vector<Ort::Value>              output_tensors;   // 输出张量
     } status;
 
     void ClearStatus()
     {
         this->status.input_tensors.clear();
         this->status.output_tensors.clear();
+        this->status.inputs_data.clear();
         return;
     }
 
@@ -79,9 +55,9 @@ private:
                         _shape[j] = shape[j];
                     result[infer->output_names[i]] = Tensor<float>(_shape, data);
                 }
-                infer->callback(infer, result, infer->callback_context, std::string());
+                infer->callback(infer, infer->status.inputs_data, result, infer->callback_context, std::string());
             } else {
-                infer->callback(infer, result, infer->callback_context, status.GetErrorMessage());
+                infer->callback(infer, infer->status.inputs_data, result, infer->callback_context, status.GetErrorMessage());
             }
         }
         infer->ClearStatus();
@@ -99,7 +75,6 @@ public:
 
     virtual std::string LoadModel(const Parameters &params) override
     {
-        this->is_normal = params.is_normal;
         Ort::SessionOptions options;
         // 设置线程数量
         options.SetIntraOpNumThreads(params.threads);
@@ -158,6 +133,7 @@ public:
                                                           shape.data(),
                                                           shape.size());
             this->status.input_tensors.push_back(std::move(tensor));
+            this->status.inputs_data[it->first] = it->second;
         }
         // 设置输出
         for (auto &v : this->output)

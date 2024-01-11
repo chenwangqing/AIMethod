@@ -29,12 +29,12 @@ public:
      * @author   CXS (chenxiangshu@outlook.com)
      * @date     2024-01-09
      */
-    typedef struct
-    {
+    class Result {
+    public:
         int      classId;      // 类别
         float    confidence;   // 置信度
         cv::Rect box;          // 盒子信息
-    } Result;
+    };
 
     float confidence_threshold = 0.25f;   // 置信度阈值
     float nms_threshold        = 0.2f;    // NMS算法阈值

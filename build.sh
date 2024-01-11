@@ -33,11 +33,11 @@ i=1
 lds=""
 for file in ${FILES[@]}; do
     echo "编译[$i/$n]: $file"
-    bash -c "g++ -c ../$file $CXX_FLAGS"
+    bash -c "g++ -c ../$file $CXX_FLAGS" || exit 1
     i=$((i + 1))
     lds+="${file%.*}.o "
 done
 echo "生成 main"
-bash -c "g++ $lds -o main $LD_FLAGS"
+bash -c "g++ $lds -o main $LD_FLAGS" || exit 1
 
 du -sh main

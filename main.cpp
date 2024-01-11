@@ -26,6 +26,7 @@ static uint64_t GetMillisecond(void)
 }
 
 static void ExecCallback(IRatiocinate                         *infer,
+                         std::map<std::string, Tensor<float>> &inputs,
                          std::map<std::string, Tensor<float>> &results,
                          void                                 *context,
                          const std::string                    &err)
