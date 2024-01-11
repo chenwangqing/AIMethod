@@ -70,8 +70,8 @@ public:
      */
     typedef struct
     {
-        const char *model;       // 模型文件
-        int         threads;     // 线程数量
+        const char *model;     // 模型文件
+        int         threads;   // 线程数量
     } Parameters;
 
     /**
@@ -85,7 +85,7 @@ public:
         std::vector<int64_t> shape;   // 形状
     } IOInfo;
 
-    ExecCallback_t callback         = nullptr;   // 执行回调
+    ExecCallback_t callback         = nullptr;   // 执行回调(不关成功与否)
     void          *callback_context = nullptr;   // 用户上下文
 
     /**

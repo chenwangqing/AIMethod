@@ -137,7 +137,7 @@ namespace Tools {
                 break;
             }
 
-            FormatItem(ss, format.substr(start, pos - start), argArray);
+            _Internal_Format::FormatItem(ss, format.substr(start, pos - start), argArray);
             start = pos + 1;
         }
         return ss.str();

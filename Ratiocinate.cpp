@@ -164,6 +164,10 @@ public:
         if (!this->is_runing.compare_exchange_strong(flag, 1))
             return "A task is running";
         auto ret = _ExecAsync(inputs);
+        if (!ret.empty() && this->callback != nullptr) {
+            std::map<std::string, Tensor<float>> tmp;
+            this->callback(this, this->status.inputs_data, tmp, this->callback_context, ret);
+        }
         this->is_runing.fetch_sub(1);
         return ret;
     }
