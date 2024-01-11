@@ -47,10 +47,12 @@ namespace AIMethod {
                 if (confidence < confidence_threshold)
                     continue;
                 // 获取盒子信息
-                int      centerX = detection[0];
-                int      centerY = detection[1];
-                int      width   = detection[2];
-                int      height  = detection[3];
+                int centerX = detection[0];
+                int centerY = detection[1];
+                int width   = detection[2];
+                int height  = detection[3];
+                if (centerX < 0 || centerY < 0 || width < 0 || height < 0)
+                    continue;
                 cv::Rect r;
                 r.x      = centerX - (width >> 1);
                 r.y      = centerY - (height >> 1);

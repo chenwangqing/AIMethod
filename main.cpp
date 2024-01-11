@@ -64,8 +64,9 @@ int main(int argc, char **argv)
     infer->callback    = ExecCallback;
 
     auto name = infer->GetIOInfo(false)[0].name;
-    imgs.push_back(cv::imread("./img/1.jpg"));
-    imgs.push_back(cv::imread("./img/2.jpg"));
+    // imgs.push_back(cv::imread("./img/1.jpg"));
+    // imgs.push_back(cv::imread("./img/2.jpg"));
+    imgs.push_back(cv::imread("./img/4.png"));
     auto inputs = Tools::ImageBGRToNCHW(imgs, {416, 416}, lets, err);
     inputs *= 1.0f / 255.0f;
 

@@ -34,7 +34,6 @@ namespace Tools {
         int left   = int(round(pad_w - 0.1));
         int right  = int(round(pad_w + 0.1));
         cv::copyMakeBorder(resize_img, resize_img, top, bottom, left, right, 0, cv::Scalar(114, 114, 114));
-
         return resize_img;
     }
 
@@ -83,7 +82,7 @@ namespace Tools {
             // BGR2RGB
             for (int i = 0; i < img.rows; i++) {
                 for (int j = 0; j < img.cols; j++) {
-                    auto &tmp                                        = img_f32.at<cv::Vec3f>(i, j);
+                    auto &tmp                                        = img.at<cv::Vec3f>(i, j);
                     data[i * img.cols + j + 0]                       = tmp[2];
                     data[i * img.cols + j + 1 * img.cols * img.rows] = tmp[1];
                     data[i * img.cols + j + 2 * img.cols * img.rows] = tmp[0];
