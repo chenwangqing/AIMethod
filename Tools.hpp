@@ -15,17 +15,7 @@
  */
 #if !defined(__TOOLS_HPP_)
 #define __TOOLS_HPP_
-#include <stdint.h>
-#include <atomic>
-#include <map>
-#include <string>
-#include <vector>
-#include <list>
-#include <stdlib.h>
-#include <iostream>
-#include <algorithm>
-#include <sstream>
-#include <iomanip>
+#include "Tensor.hpp"
 
 namespace Tools {
     namespace _Internal_Format {

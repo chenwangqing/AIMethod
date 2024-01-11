@@ -16,6 +16,7 @@
 #if !defined(__Ratiocinate_HPP__)
 #define __Ratiocinate_HPP__
 #include "Tools.CV.hpp"
+#include "Tensor.hpp"
 
 // 启用 ONNX Runtime 支持动态输入
 #ifndef EN_ONNXRUNTIME
@@ -47,42 +48,18 @@ public:
     virtual bool IsRun() = 0;
 
     /**
-     * @brief    结果
-     * @author   CXS (chenxiangshu@outlook.com)
-     * @date     2024-01-10
-     */
-    class Result {
-    public:
-        std::vector<int64_t> shape;   // 形状
-        float               *data;    // 结果数据
-    };
-
-    /**
-     * @brief    输入
-     * @author   CXS (chenxiangshu@outlook.com)
-     * @date     2024-01-10
-     */
-    class Input {
-    public:
-        std::vector<cv::Mat>          imgs;   // 图像数据
-        std::vector<Tools::Letterbox> lets;   // 图像修正
-    };
-
-    /**
      * @brief    执行回调
      * @param    infer         推理接口
-     * @param    inputs        输入参数
      * @param    results       推理结果
      * @param    context       用户上下文
      * @param    err           错误信息
      * @author   CXS (chenxiangshu@outlook.com)
      * @date     2024-01-10
      */
-    typedef void (*ExecCallback_t)(IRatiocinate                                *infer,
-                                   std::map<std::string, IRatiocinate::Input>  &inputs,
-                                   std::map<std::string, IRatiocinate::Result> &results,
-                                   void                                        *context,
-                                   const std::string                           &err);
+    typedef void (*ExecCallback_t)(IRatiocinate                         *infer,
+                                   std::map<std::string, Tensor<float>> &results,
+                                   void                                 *context,
+                                   const std::string                    &err);
 
     /**
      * @brief    参数
@@ -129,15 +106,13 @@ public:
     virtual const std::vector<IOInfo> &GetIOInfo(bool isOutput) const = 0;
 
     /**
-     * @brief    异步执行(图像处理)
-     * @param    inputs         输入图片 BGR 格式
-     * @param    size           推理时的大小（动态输入需要设置）
-     * @return   std::string
+     * @brief    异步执行
+     * @param    input          输入张量
+     * @return   std::string    错误信息
      * @author   CXS (chenxiangshu@outlook.com)
-     * @date     2024-01-10
+     * @date     2024-01-11
      */
-    virtual std::string ExecAsync(const std::map<std::string, std::vector<cv::Mat>> &inputs,
-                                  cv::Size2i                                         size = cv::Size2i()) = 0;
+    virtual std::string ExecAsync(const std::map<std::string, Tensor<float>> &inputs) = 0;
 };
 
 /**

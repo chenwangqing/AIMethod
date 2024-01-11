@@ -15,13 +15,13 @@ void TargetDetection::DrawBox(cv::Mat                                    &img,
     return;
 }
 
-std::vector<std::vector<TargetDetection::Result>> TargetDetection::Yolo(const IRatiocinate::Result          &input,
+std::vector<std::vector<TargetDetection::Result>> TargetDetection::Yolo(const Tensor<float>                 &input,
                                                                         const std::vector<Tools::Letterbox> &lets)
 {
     std::vector<std::vector<TargetDetection::Result>> result;
 
-    auto &dims = input.shape;
-    auto  data = input.data;
+    auto &dims = input.GetShape();
+    auto  data = input.Value();
     if (dims.size() != 3 || dims[2] <= 5 || lets.size() != dims[0])
         return result;
     for (int64_t k = 0; k < dims[0]; k++, data += dims[1] * dims[2]) {

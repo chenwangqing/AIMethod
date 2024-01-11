@@ -47,7 +47,7 @@ public:
      * @author   CXS (chenxiangshu@outlook.com)
      * @date     2024-01-10
      */
-    std::vector<std::vector<TargetDetection::Result>> Yolo(const IRatiocinate::Result          &input,
+    std::vector<std::vector<TargetDetection::Result>> Yolo(const Tensor<float>                 &input,
                                                            const std::vector<Tools::Letterbox> &lets);
 
     /**

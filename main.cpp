@@ -13,6 +13,11 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "Tensor.hpp"
+
+std::vector<Tools::Letterbox> lets;
+std::vector<cv::Mat>          imgs;
+
 static uint64_t GetMillisecond(void)
 {
     struct timeval ts = {0};
@@ -20,11 +25,10 @@ static uint64_t GetMillisecond(void)
     return ts.tv_sec * 1000 + (ts.tv_usec / 1000);
 }
 
-static void ExecCallback(IRatiocinate                                *infer,
-                         std::map<std::string, IRatiocinate::Input>  &inputs,
-                         std::map<std::string, IRatiocinate::Result> &results,
-                         void                                        *context,
-                         const std::string                           &err)
+static void ExecCallback(IRatiocinate                         *infer,
+                         std::map<std::string, Tensor<float>> &results,
+                         void                                 *context,
+                         const std::string                    &err)
 {
     if (!err.empty())
         printf("Err: %s", err.c_str());
@@ -33,10 +37,9 @@ static void ExecCallback(IRatiocinate                                *infer,
         auto           &input_name  = infer->GetIOInfo(false)[0].name;
         auto           &output_name = infer->GetIOInfo(true)[0].name;
         auto            ret         = results[output_name];
-        auto            in          = inputs[input_name];
-        auto            rs          = det.Yolo(ret, in.lets);
-        for (size_t i = 0; i < in.imgs.size(); i++) {
-            auto &img  = in.imgs[i];
+        auto            rs          = det.Yolo(ret, lets);
+        for (size_t i = 0; i < imgs.size(); i++) {
+            auto &img  = imgs[i];
             auto &rets = rs[i];
             det.DrawBox(img, rets);
             std::string str = Tools::Format("./output/{0}.jpg", i);
@@ -58,11 +61,14 @@ int main(int argc, char **argv)
     err                  = infer->LoadModel(parameters);
     infer->callback      = ExecCallback;
 
-    auto                 name = infer->GetIOInfo(false)[0].name;
-    std::vector<cv::Mat> imgs;
+    auto name = infer->GetIOInfo(false)[0].name;
     imgs.push_back(cv::imread("./img/1.jpg"));
     imgs.push_back(cv::imread("./img/2.jpg"));
-    err = infer->ExecAsync({{name, imgs}}, {416, 416});
+    auto inputs = Tools::ImageBGRToNCHW(imgs, {416, 416}, lets, err);
+    inputs *= 1.0f / 255.0f;
+
+    err = infer->ExecAsync({{name, inputs}});
+    inputs.Clear();
     while (infer->IsRun())
         sleep(1);
     return 0;

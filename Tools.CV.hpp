@@ -18,19 +18,17 @@
 #include "Tools.hpp"
 #include <opencv4/opencv2/opencv.hpp>
 
-namespace Tools
-{
+namespace Tools {
     /**
      * @brief    图像Letterbox处理
      * @author   CXS (chenxiangshu@outlook.com)
      * @date     2024-01-08
      */
-    class Letterbox
-    {
+    class Letterbox {
     private:
-        int _fill_width = 0;
-        int _fill_height = 0;
-        float _r = 1.0f;
+        int   _fill_width  = 0;
+        int   _fill_height = 0;
+        float _r           = 1.0f;
 
     public:
         /**
@@ -69,6 +67,22 @@ namespace Tools
          */
         cv::Rect Restore(const cv::Rect &box) const;
     };
-}
 
-#endif // __Tools_CV_hpp__
+    /**
+     * @brief    图片转张量
+     * @param    imgs           图片列表
+     * @param    size           转换大小
+     * @param    lets           转换形变
+     * @param    err            错误信息
+     * @return   Tensor<float>
+     * @author   CXS (chenxiangshu@outlook.com)
+     * @date     2024-01-11
+     */
+    extern Tensor<float> ImageBGRToNCHW(const std::vector<cv::Mat>    &imgs,
+                                        const cv::Size2i              &size,
+                                        std::vector<Tools::Letterbox> &lets,
+                                        std::string                   &err);
+
+}   // namespace Tools
+
+#endif   // __Tools_CV_hpp__
