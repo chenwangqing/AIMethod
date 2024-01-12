@@ -18,9 +18,12 @@ CXX_FLAGS="-g -std=c++14 \
     -I/usr/local/include/onnxruntime \
     -I/usr/local/include/opencv4 "
 
+# 宏定义
+DEF_FLAGS="-DCFG_INFER_ENGINE=1"
+
 # 连接标志
 LD_FLAGS="-L/usr/local/lib \
-    -lonnxruntime \
+    -lonnxruntime -pthread \
     -lopencv_core -lopencv_highgui -lopencv_imgproc -lopencv_imgcodecs -lopencv_dnn"
 
 # -------------------------------------- 开始编译 --------------------------------------
@@ -33,7 +36,7 @@ i=1
 lds=""
 for file in ${FILES[@]}; do
     echo "编译[$i/$n]: $file"
-    bash -c "g++ -c ../$file $CXX_FLAGS" || exit 1
+    bash -c "g++ -c ../$file $CXX_FLAGS $DEF_FLAGS" || exit 1
     i=$((i + 1))
     lds+="${file%.*}.o "
 done

@@ -18,9 +18,13 @@
 #include "Tools.CV.hpp"
 #include "Tensor.hpp"
 
-// 启用 ONNX Runtime 支持动态输入
-#ifndef EN_ONNXRUNTIME
-#define EN_ONNXRUNTIME 1
+// 设置推理引擎
+
+#define INFER_ENGINE_OPENCV      0   //! 不支持动态输入
+#define INFER_ENGINE_ONNXRUNTIME 1   // 支持动态输入
+
+#ifndef CFG_INFER_ENGINE
+#define CFG_INFER_ENGINE INFER_ENGINE_OPENCV
 #endif
 
 // 启用GPU加速
@@ -103,8 +107,10 @@ namespace AIMethod {
          */
         typedef struct
         {
-            const char *model;     // 模型文件
-            int         threads;   // 线程数量
+            const char *model;   // 模型文件
+#if CFG_INFER_ENGINE == INFER_ENGINE_ONNXRUNTIME
+            int threads;   // 线程数量
+#endif
         } Parameters;
 
         ExecCallback_t callback         = nullptr;   // 执行回调(不关成功与否)

@@ -1,9 +1,10 @@
 
 #include "Ratiocinate.hpp"
+#include <thread>
 
 namespace AIMethod {
 
-#if EN_ONNXRUNTIME
+#if CFG_INFER_ENGINE == INFER_ENGINE_ONNXRUNTIME
 #include "onnxruntime_cxx_api.h"
     class Ratiocinate : public IRatiocinate {
     private:
@@ -137,6 +138,7 @@ namespace AIMethod {
             catch (std::exception &e) {
                 err = e.what();
                 this->is_runing.fetch_sub(1);
+                delete status;
             }
             return err;
         }
@@ -162,12 +164,13 @@ namespace AIMethod {
             return this->is_runing.load() != 0;
         }
     };
-#else
-    // TODO: 未完成
+#elif CFG_INFER_ENGINE == INFER_ENGINE_OPENCV
 #include <opencv4/opencv2/dnn.hpp>
     class Ratiocinate : public IRatiocinate {
     private:
         cv::dnn::Net *session = nullptr;
+
+        class Status : public IStatus {};
 
     public:
         virtual ~Ratiocinate()
@@ -179,9 +182,10 @@ namespace AIMethod {
 
         virtual std::string LoadModel(const Parameters &params) override
         {
-            this->is_normal = params.is_normal;
             try {
                 this->session = new cv::dnn::Net(cv::dnn::readNetFromONNX(params.model));
+                this->session->setPreferableBackend(cv::dnn::DNN_BACKEND_OPENCV);
+                this->session->setPreferableTarget(cv::dnn::DNN_TARGET_CPU);
             }
             catch (std::exception ex) {
                 return ex.what();
@@ -191,6 +195,95 @@ namespace AIMethod {
             return std::string();
         }
 
+        static void exec(Status *status)
+        {
+            if (status == nullptr) return;
+            Ratiocinate               *infer        = dynamic_cast<Ratiocinate *>(status->infer);
+            auto                      &input_names  = status->input_names;
+            auto                      &input_datas  = status->input_datas;
+            auto                      &output_names = status->output_names;
+            std::string                err;
+            std::vector<Tensor<float>> output_datas;
+            try {
+                for (size_t i = 0; i < input_names.size(); i++) {
+                    auto    shape = input_datas[i].GetShape();
+                    cv::Mat input(shape, CV_32F);
+                    auto    s = input_datas[i].Size();
+                    memcpy(input.data, input_datas[i].Value(), s * sizeof(float));
+                    infer->session->setInput(input, input_names[i].c_str());
+                }
+
+                for (size_t i = 0; i < output_names.size(); i++) {
+                    auto             data = infer->session->forward(output_names[i].c_str());
+                    std::vector<int> shape(data.size.p, data.size.p + data.dims);
+                    output_datas.push_back(Tensor<float>(shape, (float *)data.data));
+                }
+            }
+            catch (std::exception &ex) {
+                err = ex.what();
+            }
+            if (infer->callback != nullptr) {
+                std::vector<Result> result;
+                for (size_t i = 0; i < output_datas.size(); i++) {
+                    Result rs;
+                    rs.shape = output_datas[i].GetShape();
+                    rs.data  = output_datas[i].Value();
+                    result.push_back(rs);
+                }
+                infer->callback(infer,
+                                input_names,
+                                input_datas,
+                                output_names,
+                                result,
+                                infer->callback_context,
+                                err);
+            }
+            infer->is_runing.fetch_sub(1);
+            delete status;
+            return;
+        }
+
+        std::string _ExecAsync(const std::vector<std::string>   &input_names,
+                               const std::vector<std::string>   &output_names,
+                               const std::vector<Tensor<float>> &input_datas)
+        {
+            if (input_names.size() == 0 || input_names.size() != input_datas.size() || output_names.size() == 0)
+                return "The input parameter cannot be empty";
+
+            Status *status       = new Status();
+            status->infer        = this;
+            status->input_datas  = input_datas;
+            status->input_names  = input_names;
+            status->output_names = output_names;
+
+            try {
+                this->is_runing.fetch_add(1);
+                std::thread thr(exec, status);
+                thr.detach();   // 分离线程
+            }
+            catch (std::exception &ex) {
+                this->is_runing.fetch_sub(0);
+                delete status;
+                return ex.what();
+            }
+            return std::string();
+        }
+
+        virtual std::string ExecAsync(const std::vector<std::string>   &input_name,
+                                      const std::vector<std::string>   &output_name,
+                                      const std::vector<Tensor<float>> &input_data) override
+        {
+            int flag = 0;
+            if (!this->is_runing.compare_exchange_strong(flag, 1))
+                return "A task is running";
+            auto ret = _ExecAsync(input_name, output_name, input_data);
+            if (!ret.empty() && this->callback != nullptr) {
+                const std::vector<Result> tmp;
+                this->callback(this, input_name, input_data, output_name, tmp, this->callback_context, ret);
+            }
+            this->is_runing.fetch_sub(1);
+            return ret;
+        }
 
         virtual bool IsRun() override
         {

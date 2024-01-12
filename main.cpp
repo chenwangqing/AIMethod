@@ -27,20 +27,20 @@ static uint64_t GetMillisecond(void)
     return ts.tv_sec * 1000 + (ts.tv_usec / 1000);
 }
 
-static void ExecCallback(IRatiocinate                         *infer,
-                         std::map<std::string, Tensor<float>> &inputs,
-                         std::map<std::string, Tensor<float>> &results,
-                         void                                 *context,
-                         const std::string                    &err)
+static void ExecCallback(IRatiocinate                            *infer,
+                         const std::vector<std::string>          &input_names,
+                         const std::vector<Tensor<float>>        &input_datas,
+                         const std::vector<std::string>          &output_names,
+                         const std::vector<IRatiocinate::Result> &output_datas,
+                         void                                    *context,
+                         const std::string                       &err)
 {
     if (!err.empty())
         printf("Err: %s", err.c_str());
     else {
         TargetDetection det;
-        auto           &input_name  = infer->GetIOInfo(false)[0].name;
-        auto           &output_name = infer->GetIOInfo(true)[0].name;
-        auto            ret         = results[output_name];
-        auto            rs          = det.Yolo(ret, lets);
+        auto            ret = Tensor<float>::MakeConst(output_datas[0].shape, output_datas[0].data);
+        auto            rs  = det.Yolo(ret, lets);
         for (size_t i = 0; i < imgs.size(); i++) {
             auto &img  = imgs[i];
             auto &rets = rs[i];
@@ -58,19 +58,25 @@ int main(int argc, char **argv)
     auto                     infer = Ratiocinate_Create();
     IRatiocinate::Parameters parameters;
     parameters.model = "./best-dynamic.onnx";
-    // parameters.model     = "./best-static.onnx";
+    // parameters.model = "./best.onnx";
+#if CFG_INFER_ENGINE == INFER_ENGINE_ONNXRUNTIME
     parameters.threads = 2;
-    err                = infer->LoadModel(parameters);
-    infer->callback    = ExecCallback;
+#endif
+    err             = infer->LoadModel(parameters);
+    infer->callback = ExecCallback;
 
-    auto name = infer->GetIOInfo(false)[0].name;
-    // imgs.push_back(cv::imread("./img/1.jpg"));
+    if (!err.empty()) {
+        printf("ERR: %s\n", err.c_str());
+        return 0;
+    }
+
+    imgs.push_back(cv::imread("./img/1.jpg"));
     // imgs.push_back(cv::imread("./img/2.jpg"));
     imgs.push_back(cv::imread("./img/4.png"));
     auto inputs = Tools::ImageBGRToNCHW(imgs, {416, 416}, lets, err);
     inputs *= 1.0f / 255.0f;
 
-    err = infer->ExecAsync({{name, inputs}});
+    err = infer->ExecAsync({"images"}, {"output0"}, {inputs});
     inputs.Clear();
     while (infer->IsRun())
         sleep(1);
