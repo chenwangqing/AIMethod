@@ -39,6 +39,14 @@ namespace AIMethod {
     protected:
         std::atomic<int> is_runing;   // 正在运行
 
+        class IStatus {
+        public:
+            IRatiocinate              *infer;
+            std::vector<std::string>   input_names;
+            std::vector<std::string>   output_names;
+            std::vector<Tensor<float>> input_datas;
+        };
+
     public:
         IRatiocinate() :
             is_runing(0)
@@ -47,23 +55,46 @@ namespace AIMethod {
 
         virtual ~IRatiocinate() = default;
 
+        /**
+         * @brief    正在运行
+         * @return   true
+         * @return   false
+         * @author   CXS (chenxiangshu@outlook.com)
+         * @date     2024-01-12
+         */
         virtual bool IsRun() = 0;
+
+        /**
+         * @brief    推理结果
+         * @author   CXS (chenxiangshu@outlook.com)
+         * @date     2024-01-12
+         */
+        typedef struct
+        {
+            std::vector<int> shape;
+            const float     *data;   // 仅在ExecCallback_t有效
+        } Result;
 
         /**
          * @brief    执行回调
          * @param    infer         推理接口
-         * @param    inputs        推理输入
-         * @param    results       推理结果
+         * @param    input_names   输入名称
+         * @param    input_datas   输入数据
+         * @param    output_names  输出名称
+         * @param    output_names  输出名称
+         * @param    output_datas  输出数据
          * @param    context       用户上下文
          * @param    err           错误信息
          * @author   CXS (chenxiangshu@outlook.com)
          * @date     2024-01-10
          */
-        typedef void (*ExecCallback_t)(IRatiocinate                         *infer,
-                                       std::map<std::string, Tensor<float>> &inputs,
-                                       std::map<std::string, Tensor<float>> &results,
-                                       void                                 *context,
-                                       const std::string                    &err);
+        typedef void (*ExecCallback_t)(IRatiocinate                            *infer,
+                                       const std::vector<std::string>          &input_names,
+                                       const std::vector<Tensor<float>>        &input_datas,
+                                       const std::vector<std::string>          &output_names,
+                                       const std::vector<IRatiocinate::Result> &output_datas,
+                                       void                                    *context,
+                                       const std::string                       &err);
 
         /**
          * @brief    参数
@@ -75,17 +106,6 @@ namespace AIMethod {
             const char *model;     // 模型文件
             int         threads;   // 线程数量
         } Parameters;
-
-        /**
-         * @brief    IO信息
-         * @author   CXS (chenxiangshu@outlook.com)
-         * @date     2024-01-10
-         */
-        typedef struct
-        {
-            std::string          name;    // 名称
-            std::vector<int64_t> shape;   // 形状
-        } IOInfo;
 
         ExecCallback_t callback         = nullptr;   // 执行回调(不关成功与否)
         void          *callback_context = nullptr;   // 用户上下文
@@ -100,22 +120,17 @@ namespace AIMethod {
         virtual std::string LoadModel(const Parameters &params) = 0;
 
         /**
-         * @brief    获取IO信息
-         * @param    isOutput      true: 输出参数 false：输入参数
-         * @return   const IOInfo&
-         * @author   CXS (chenxiangshu@outlook.com)
-         * @date     2024-01-10
-         */
-        virtual const std::vector<IOInfo> &GetIOInfo(bool isOutput) const = 0;
-
-        /**
          * @brief    异步执行
-         * @param    input          输入张量
-         * @return   std::string    错误信息
+         * @param    input_name     输入名称
+         * @param    output_name    输出名称
+         * @param    input_data     输入参数
+         * @return   std::string
          * @author   CXS (chenxiangshu@outlook.com)
-         * @date     2024-01-11
+         * @date     2024-01-12
          */
-        virtual std::string ExecAsync(const std::map<std::string, Tensor<float>> &inputs) = 0;
+        virtual std::string ExecAsync(const std::vector<std::string>   &input_names,
+                                      const std::vector<std::string>   &output_names,
+                                      const std::vector<Tensor<float>> &input_datas) = 0;
     };
 
     /**

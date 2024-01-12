@@ -60,9 +60,7 @@ namespace AIMethod {
          */
         void Separation()
         {
-            if (this->node == nullptr)
-                return;
-            if (this->node->ref_count.fetch_sub(1) == 1)
+            if (this->node != nullptr && this->node->ref_count.fetch_sub(1) == 1)
                 delete this->node;
             this->node = nullptr;
             this->data = nullptr;
@@ -71,6 +69,11 @@ namespace AIMethod {
             return;
         }
 
+        /**
+         * @brief    制作索引
+         * @author   CXS (chenxiangshu@outlook.com)
+         * @date     2024-01-12
+         */
         void MakeIndex()
         {
             if (shape.size() == 0) {
