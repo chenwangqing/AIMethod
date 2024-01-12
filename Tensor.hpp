@@ -85,6 +85,23 @@ namespace AIMethod {
             return;
         }
 
+        Tensor(const std::vector<int> &shape, const T *data, Node *node) :
+            shape(shape), data((T *)data), node(node)
+        {
+            MakeIndex();
+        }
+
+        void Copy(const Tensor &ps)
+        {
+            auto s            = ps.Size();
+            node              = new Node();
+            node->data        = std::vector<T>(ps.data, ps.data + s);
+            this->shape       = ps.shape;
+            this->shape_index = ps.shape_index;
+            this->data        = node->data.data();
+            return;
+        }
+
     public:
         Tensor()
         {
@@ -100,12 +117,16 @@ namespace AIMethod {
         {
             if (ps.node == nullptr)
                 return;
-            this->node = ps.node;
-            if (this->node != nullptr)
-                this->node->ref_count.fetch_add(1);
-            this->shape       = ps.shape;
-            this->data        = ps.data;
-            this->shape_index = ps.shape_index;
+            if (ps.node == nullptr && ps.data != nullptr) {
+                Copy(ps);
+            } else {
+                this->node = ps.node;
+                if (this->node != nullptr)
+                    this->node->ref_count.fetch_add(1);
+                this->shape       = ps.shape;
+                this->data        = ps.data;
+                this->shape_index = ps.shape_index;
+            }
             return;
         }
 
@@ -174,6 +195,20 @@ namespace AIMethod {
             return;
         }
 
+        /**
+         * @brief    创建常量（不会拷贝数据）
+         * @param    shape          形状
+         * @param    data           数据指针
+         * @return   const Tensor
+         * @author   CXS (chenxiangshu@outlook.com)
+         * @date     2024-01-12
+         */
+        static const Tensor MakeConst(const std::vector<int> &shape, const T *data)
+        {
+            const Tensor tmp(shape, data, nullptr);
+            return tmp;
+        }
+
         inline const std::vector<int> &GetShape() const
         {
             return this->shape;
@@ -203,12 +238,16 @@ namespace AIMethod {
         Tensor &operator=(const Tensor &ps)
         {
             Separation();
-            this->node        = ps.node;
-            this->shape       = ps.shape;
-            this->data        = ps.data;
-            this->shape_index = ps.shape_index;
-            if (this->node != nullptr)
-                this->node->ref_count.fetch_add(1);
+            if (ps.node == nullptr && ps.data != nullptr) {
+                Copy(ps);
+            } else {
+                this->node        = ps.node;
+                this->shape       = ps.shape;
+                this->data        = ps.data;
+                this->shape_index = ps.shape_index;
+                if (this->node != nullptr)
+                    this->node->ref_count.fetch_add(1);
+            }
             return *this;
         }
 
@@ -468,10 +507,15 @@ namespace AIMethod {
             }
             if (r + idx > s) return Tensor();
             Tensor ret;
-            ret.node = this->node;
-            ret.node->ref_count.fetch_add(1);
+            if (this->node == nullptr && this->data != nullptr) {
+                ret.node = new Node();
+                ret.data = std::vector<T>(this->data + idx, this->data + r);
+            } else {
+                ret.node = this->node;
+                ret.node->ref_count.fetch_add(1);
+                ret.data = this->data + idx;
+            }
             ret.shape = shape;
-            ret.data  = this->data + idx;
             ret.MakeIndex();
             return ret;
         }
