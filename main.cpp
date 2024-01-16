@@ -22,7 +22,7 @@ using namespace AIMethod;
 std::vector<Tools::Letterbox> lets;
 std::vector<cv::Mat>          imgs;
 
-#define IS_TARGETDETECTION 0
+#define IS_TARGETDETECTION 1
 
 static uint64_t GetMillisecond(void)
 {
@@ -60,24 +60,32 @@ static void ExecCallback(IRatiocinate                            *infer,
             auto             pred  = Tensor<float>::MakeConst(output_datas[0].shape, output_datas[0].data);
             auto             proto = Tensor<float>::MakeConst(output_datas[1].shape, output_datas[1].data);
             auto             rs    = seg.Yolo(det, pred, proto, lets);
+            if (rs.size() == imgs.size()) {
+                for (size_t i = 0; i < rs.size(); i++) {
+                    for (auto &v : rs[i]) {
+                        cv::Mat img(imgs[i].size(), CV_32FC3);
+                        // cv::bitwise_and(imgs[i], imgs[i], img, v.mask);
+                        auto s = img.rows * img.cols;
+                        auto p = imgs[i].data;
+                        auto m = v.mask.data;
+                        auto r = img.data;
+                        cv::imwrite("./output/mask.jpg", v.mask);
+                        auto t = v.mask.type();
+                        for (size_t j = 0; j < s; j++) {
+                            if (m[j]) {
+                                int ih                    = j / img.cols;
+                                int iw                    = j % img.cols;
+                                img.at<cv::Vec3f>(ih, iw) = imgs[i].at<cv::Vec3f>(ih, iw);
+                            }
+                        }
+                        cv::imwrite("./output/rs.jpg", img);
+                    }
+                }
+            }
         }
 #endif
     }
     return;
-}
-
-typedef int (*Func)(int, int);
-
-template<Func F>
-int func_txt(int a, int b)
-{
-    return F(a, b);
-}
-
-template<int N>
-int func_xxx(int a, int b)
-{
-    return a + b + N;
 }
 
 int main(int argc, char **argv)
@@ -91,7 +99,7 @@ int main(int argc, char **argv)
     std::string              err;
     auto                     infer = Ratiocinate_Create();
     IRatiocinate::Parameters parameters;
-    parameters.model = "./yolov5s-seg.onnx";
+    parameters.model = "./onnx/yolov5s-640h640w.onnx";
     // parameters.model = "./best.onnx";
 #if CFG_INFER_ENGINE == INFER_ENGINE_ONNXRUNTIME
     parameters.threads = 2;
@@ -108,14 +116,14 @@ int main(int argc, char **argv)
     // imgs.push_back(cv::imread("./img/2.jpg"));
     // imgs.push_back(cv::imread("./img/4.png"));
 #if IS_TARGETDETECTION
-    cv::Size2i size(416, 416);
+    cv::Size2i size(640, 640);
 #else
     cv::Size2i size(640, 640);
 #endif
     auto inputs = Tools::ImageBGRToNCHW(imgs, size, lets, err);
     inputs      = op.Mul($(inputs), 1 / 255.0f);
 
-    err = infer->ExecAsync({"images"}, {"output0", "output1"}, {inputs});
+    err = infer->ExecAsync({"images"}, {"output0"}, {inputs});
     inputs.Clear();
     while (infer->IsRun())
         sleep(1);

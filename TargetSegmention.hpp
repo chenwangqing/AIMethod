@@ -1,6 +1,6 @@
 /**
  * @file     TargetSegmention.hpp
- * @brief    目标分割
+ * @brief    目标分割(未完成)
  * @author   CXS (chenxiangshu@outlook.com)
  * @version  1.0
  * @date     2024-01-15
@@ -29,6 +29,7 @@ namespace AIMethod {
          */
         class Result : public TargetDetection::Result {
         public:
+            cv::Mat mask;
         };
 
         /**

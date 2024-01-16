@@ -58,9 +58,9 @@ namespace AIMethod {
         std::vector<int> shape_index;
         T               *data = nullptr;
 
-        int  TotalLength     = 0;
-        int  Dimensions_Size = 0;
-        int *Dimensions      = nullptr;
+        size_t TotalLength     = 0;
+        size_t Dimensions_Size = 0;
+        int   *Dimensions      = nullptr;
 
         /**
          * @brief    分离
@@ -110,11 +110,11 @@ namespace AIMethod {
 
         void Copy(const Tensor &ps)
         {
-            auto s            = ps.Size();
-            node              = new Node(ps.data, s);
-            this->shape       = ps.shape;
-            this->shape_index = ps.shape_index;
-            this->data        = node->data.data();
+            auto s      = ps.Size();
+            this->node  = new Node(ps.data, s);
+            this->shape = ps.shape;
+            this->data  = this->node->data.data();
+            this->MakeIndex();
             return;
         }
 
@@ -139,9 +139,9 @@ namespace AIMethod {
                 this->node = ps.node;
                 if (this->node != nullptr)
                     this->node->ref_count.fetch_add(1);
-                this->shape       = ps.shape;
-                this->data        = ps.data;
-                this->shape_index = ps.shape_index;
+                this->shape = ps.shape;
+                this->data  = ps.data;
+                this->MakeIndex();
             }
             return;
         }
@@ -318,16 +318,19 @@ namespace AIMethod {
             return *this;
         }
 
-        bool operator==(const Tensor &ps) const
+        /**
+         * @brief    算法内容一致
+         * @param    ps
+         * @return   true
+         * @return   false
+         * @author   CXS (chenxiangshu@outlook.com)
+         * @date     2024-01-16
+         */
+        bool Equal(const Tensor &ps) const
         {
             return ps.Size() == this->Size() &&
                    ps.shape == this->shape &&
                    memcmp(this->data, ps.data, this->Size() * sizeof(T)) == 0;
-        }
-
-        inline bool operator!=(const Tensor &ps) const
-        {
-            return !operator==(ps);
         }
 
         /**
@@ -341,6 +344,24 @@ namespace AIMethod {
             return this->node == nullptr ? Tensor() : Tensor(this->shape, this->data);
         }
 
+        /**
+         * @brief    克隆
+         * @return   Tensor
+         * @author   CXS (chenxiangshu@outlook.com)
+         * @date     2024-01-11
+         */
+        template<typename R>
+        Tensor<R> Clone() const
+        {
+            Tensor<R> result(this->shape);
+            auto      s = this->Size();
+            auto     *p = this->Value();
+            auto     *r = result.Value();
+            for (size_t i = 0; i < s; i++)
+                r[i] = (R)p[i];
+            return result;
+        }
+
         inline T *Value()
         {
             return this->data;
@@ -349,6 +370,24 @@ namespace AIMethod {
         inline const T *Value() const
         {
             return this->data;
+        }
+
+        /**
+         * @brief    拷贝
+         * @param    start          起始未知
+         * @param    data           数据
+         * @param    size           数据长度
+         * @author   CXS (chenxiangshu@outlook.com)
+         * @date     2024-01-16
+         */
+        void CopyTo(int start, const T *data, size_t size)
+        {
+            if (start < 0 || data == nullptr || size <= 0)
+                return;
+            if (size + start > this->Size())
+                return;
+            memcpy(this->data + start, data, size * sizeof(T));
+            return;
         }
 
     private:
@@ -538,6 +577,7 @@ namespace AIMethod {
                 if (v <= 0) {
                     if (r_idx >= 0) return Tensor();
                     r_idx = i;
+                    continue;
                 }
                 r *= v;
             }
@@ -564,7 +604,7 @@ namespace AIMethod {
 
     public:
         /**
-         * @brief    切片
+         * @brief    切片【引用】
          * @param    idx            起始索引
          * @param    shape          形状
          * @return   Tensor
@@ -577,7 +617,7 @@ namespace AIMethod {
         }
 
         /**
-         * @brief    切片
+         * @brief    切片【引用】
          * @param    idx            起始索引
          * @param    shape          形状
          * @return   Tensor
@@ -691,6 +731,38 @@ namespace AIMethod {
             this->Separation();
             return;
         }
+
+        static Tensor Zero(const std::vector<int> &shape)
+        {
+            Tensor ret(shape);
+            memset(ret.Value(), 0, ret.Size() * sizeof(T));
+            return ret;
+        }
+
+        static Tensor Ones(const std::vector<int> &shape)
+        {
+            Tensor ret(shape);
+            auto   s = ret.Size();
+            for (size_t i = 0; i < s; i++)
+                ret.data[i] = 1;
+            return ret;
+        }
+
+        /**
+         * @brief    创建范围张量[0,1,2,3...]
+         * @param    shape
+         * @return   Tensor
+         * @author   CXS (chenxiangshu@outlook.com)
+         * @date     2024-01-16
+         */
+        static Tensor Arange(const std::vector<int> &shape, T start = 0)
+        {
+            Tensor ret(shape);
+            auto   s = ret.Size();
+            for (size_t i = 0; i < s; i++)
+                ret.data[i] = (T)i + start;
+            return ret;
+        }
     };
 
     class Operation {
@@ -713,6 +785,9 @@ namespace AIMethod {
         Tensor<float> Mul(const Tensor<float> &a, const Tensor<float> &b) const;
 
         Tensor<float> Add(const Tensor<float> &a, const Tensor<float> &b) const;
+
+        Tensor<float> Sigmoid(const Tensor<float> &a) const;
+        Tensor<float> Sigmoid(Tensor<float> &&a) const;
     };
 
     extern Operation op;

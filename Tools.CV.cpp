@@ -28,6 +28,10 @@ namespace Tools {
         let._fill_height = pad_h;
         let._fill_width  = pad_w;
         let._r           = r;
+        let.height       = in_h;
+        let.width        = in_w;
+        let.let_height   = h;
+        let.let_width    = w;
 
         int top    = int(round(pad_h - 0.1));
         int bottom = int(round(pad_h + 0.1));

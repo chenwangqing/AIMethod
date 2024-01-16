@@ -61,7 +61,7 @@ namespace AIMethod {
     // --------------------------------------------------------------------------------
 
     template<typename T>
-    static Tensor<T> Mul(const Tensor<T> &a, const T b)
+    static Tensor<T> _Mul(const Tensor<T> &a, const T b)
     {
         Tensor<T> ret(a.GetShape());
         auto      v  = a.Value();
@@ -73,7 +73,7 @@ namespace AIMethod {
     }
 
     template<typename T>
-    static void Mul(Tensor<T> &a, const T b)
+    static void _Mul(Tensor<T> &a, const T b)
     {
         auto v = a.Value();
         auto s = a.Size();
@@ -84,17 +84,17 @@ namespace AIMethod {
 
     Tensor<float> Operation::Mul(const Tensor<float> &a, const float b) const
     {
-        return Mul(a, b);
+        return _Mul<float>(a, b);
     }
 
     Tensor<float> Operation::Mul(Tensor<float> &&a, const float b) const
     {
-        Mul(a, b);
+        _Mul<float>(a, b);
         return $(a);
     }
 
     template<typename T>
-    static Tensor<T> Mul(const float a, const Tensor<T> &x, const T b)
+    static Tensor<T> _Mul(const float a, const Tensor<T> &x, const T b)
     {
         Tensor<T> ret(x.GetShape());
         auto      v  = x.Value();
@@ -106,7 +106,7 @@ namespace AIMethod {
     }
 
     template<typename T>
-    static void Mul(const float a, Tensor<T> &x, const T b)
+    static void _Mul(const float a, Tensor<T> &x, const T b)
     {
         auto v = x.Value();
         auto s = x.Size();
@@ -117,12 +117,12 @@ namespace AIMethod {
 
     Tensor<float> Operation::Mul(const float a, const Tensor<float> &x, const float b) const
     {
-        return Mul(a, x, b);
+        return _Mul(a, x, b);
     }
 
     Tensor<float> Operation::Mul(const float a, Tensor<float> &&x, const float b) const
     {
-        Mul(a, x, b);
+        _Mul(a, x, b);
         return $(x);
     }
 
@@ -202,6 +202,38 @@ namespace AIMethod {
             Mul2D(1.0f, av, a_rows, a_cols, bv, b_rows, b_cols, rv, 0.0f);
         }
         return ret;
+    }
+
+    /**
+     * @brief    Sigmoid $\frac{1}{1+e^{-x}}$
+     * @tparam T
+     * @param    v
+     * @param    result
+     * @param    size
+     * @author   CXS (chenxiangshu@outlook.com)
+     * @date     2023-06-14
+     */
+    template<typename T>
+    static void _Sigmoid(const T *v, T *result, int size)
+    {
+        for (int i = 0; i < size; i++)
+            result[i] = 1 / (1 + exp(-v[i]));
+        return;
+    }
+
+    Tensor<float> Operation::Sigmoid(const Tensor<float> &a) const
+    {
+        Tensor<float> result(a.GetShape());
+        if (a.Size() > 0)
+            _Sigmoid<float>(a.Value(), result.Value(), a.Size());
+        return result;
+    }
+
+    Tensor<float> Operation::Sigmoid(Tensor<float> &&a) const
+    {
+        if (a.Size() > 0)
+            _Sigmoid<float>(a.Value(), a.Value(), a.Size());
+        return $(a);
     }
 
     Operation op = Operation::__get();

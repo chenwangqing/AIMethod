@@ -31,6 +31,11 @@ namespace Tools {
         float _r           = 1.0f;
 
     public:
+        int width;    // 原图像
+        int height;   // 原图像
+        int let_width;// 变换后的图像
+        int let_height;// 变换后的图像
+
         /**
          * @brief    图像Letterbox处理
          * @param    src            源图像
@@ -79,9 +84,9 @@ namespace Tools {
      * @date     2024-01-11
      */
     extern AIMethod::Tensor<float> ImageBGRToNCHW(const std::vector<cv::Mat>    &imgs,
-                                        const cv::Size2i              &size,
-                                        std::vector<Tools::Letterbox> &lets,
-                                        std::string                   &err);
+                                                  const cv::Size2i              &size,
+                                                  std::vector<Tools::Letterbox> &lets,
+                                                  std::string                   &err);
 
 }   // namespace Tools
 

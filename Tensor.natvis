@@ -3,11 +3,16 @@
   <Type Name="AIMethod::Tensor&lt;*&gt;">
     <Expand>
       <Item Name="[Size]" ExcludeView="simple">TotalLength</Item>
+        <ArrayItems>
+            <Size>Dimensions_Size</Size>
+            <ValuePointer>Dimensions</ValuePointer>
+        </ArrayItems>
       <ArrayItems Condition="data != 0">
         <Direction>Forward</Direction>
         <Rank>Dimensions_Size</Rank>
         <Size>Dimensions[$i]</Size>
         <ValuePointer>data</ValuePointer>
+        <LowerBound>0</LowerBound>
       </ArrayItems>
     </Expand>
   </Type>
