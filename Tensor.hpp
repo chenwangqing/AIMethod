@@ -28,6 +28,8 @@
 #include <sstream>
 #include <iomanip>
 #include <mutex>
+#include <string.h>
+#include "Define.h"
 
 namespace AIMethod {
     /**
@@ -46,12 +48,19 @@ namespace AIMethod {
 
             Node() :
                 ref_count(1) {}
+
+            Node(const T *data, size_t size) :
+                ref_count(1), data(data, data + size) {}
         };
 
         Node            *node = nullptr;
         std::vector<int> shape;   // 内置切片
         std::vector<int> shape_index;
         T               *data = nullptr;
+
+        int  TotalLength     = 0;
+        int  Dimensions_Size = 0;
+        int *Dimensions      = nullptr;
 
         /**
          * @brief    分离
@@ -66,6 +75,8 @@ namespace AIMethod {
             this->data = nullptr;
             this->shape.clear();
             this->shape_index.clear();
+            this->Dimensions_Size = 0;
+            this->TotalLength     = 0;
             return;
         }
 
@@ -85,6 +96,9 @@ namespace AIMethod {
             shape_index[n - 1] = 1;
             for (int i = n - 2; i >= 0; i--)
                 shape_index[i] = shape_index[i + 1] * shape[i + 1];
+            this->TotalLength     = shape[0] * shape_index[0];
+            this->Dimensions_Size = shape.size();
+            this->Dimensions      = this->shape.data();
             return;
         }
 
@@ -97,8 +111,7 @@ namespace AIMethod {
         void Copy(const Tensor &ps)
         {
             auto s            = ps.Size();
-            node              = new Node();
-            node->data        = std::vector<T>(ps.data, ps.data + s);
+            node              = new Node(ps.data, s);
             this->shape       = ps.shape;
             this->shape_index = ps.shape_index;
             this->data        = node->data.data();
@@ -135,12 +148,18 @@ namespace AIMethod {
 
         Tensor(Tensor &&ps)
         {
-            this->node        = ps.node;
-            this->data        = ps.data;
-            this->shape       = std::move(ps.shape);
-            this->shape_index = std::move(ps.shape_index);
-            ps.node           = nullptr;
-            ps.data           = nullptr;
+            this->node            = ps.node;
+            this->data            = ps.data;
+            this->shape           = std::move(ps.shape);
+            this->shape_index     = std::move(ps.shape_index);
+            this->TotalLength     = ps.TotalLength;
+            this->Dimensions      = ps.Dimensions;
+            this->Dimensions_Size = ps.Dimensions_Size;
+            ps.node               = nullptr;
+            ps.data               = nullptr;
+            ps.TotalLength        = 0;
+            ps.Dimensions         = nullptr;
+            ps.Dimensions_Size    = 0;
             return;
         }
 
@@ -163,13 +182,12 @@ namespace AIMethod {
         {
             if (shape.size() == 0)
                 return;
-            node        = new Node();
             this->shape = shape;
             size_t s    = this->shape[0];
             for (size_t i = 1; i < this->shape.size(); i++)
                 s *= this->shape[i];
-            node->data = std::vector<T>(data, data + s);
-            this->data = node->data.data();
+            this->node = new Node(data, s);
+            this->data = this->node->data.data();
             MakeIndex();
             return;
         }
@@ -212,11 +230,23 @@ namespace AIMethod {
             return tmp;
         }
 
+        /**
+         * @brief    获取形状
+         * @return   const std::vector<int>&
+         * @author   CXS (chenxiangshu@outlook.com)
+         * @date     2024-01-12
+         */
         inline const std::vector<int> &GetShape() const
         {
             return this->shape;
         }
 
+        /**
+         * @brief    获取形状
+         * @return   const std::vector<int>&
+         * @author   CXS (chenxiangshu@outlook.com)
+         * @date     2024-01-12
+         */
         template<typename R>
         std::vector<R> GetShape() const
         {
@@ -226,9 +256,26 @@ namespace AIMethod {
             return shape;
         }
 
+        /**
+         * @brief    获取形状索引
+         * @return   const std::vector<int>&
+         * @author   CXS (chenxiangshu@outlook.com)
+         * @date     2024-01-12
+         */
+        inline const std::vector<int> &GetShapeIndex() const
+        {
+            return this->shape_index;
+        }
+
+        /**
+         * @brief    元素数量
+         * @return   size_t
+         * @author   CXS (chenxiangshu@outlook.com)
+         * @date     2024-01-16
+         */
         inline size_t Size() const
         {
-            return this->node == nullptr ? 0 : this->shape[0] * this->shape_index[0];
+            return this->TotalLength;
         }
 
         /**
@@ -244,12 +291,12 @@ namespace AIMethod {
             if (ps.node == nullptr && ps.data != nullptr) {
                 Copy(ps);
             } else {
-                this->node        = ps.node;
-                this->shape       = ps.shape;
-                this->data        = ps.data;
-                this->shape_index = ps.shape_index;
+                this->node  = ps.node;
+                this->shape = ps.shape;
+                this->data  = ps.data;
                 if (this->node != nullptr)
                     this->node->ref_count.fetch_add(1);
+                this->MakeIndex();
             }
             return *this;
         }
@@ -257,19 +304,24 @@ namespace AIMethod {
         Tensor &operator=(Tensor &&ps)
         {
             Separation();
-            this->node        = ps.node;
-            this->shape       = std::move(ps.shape);
-            this->data        = ps.data;
-            this->shape_index = std::move(ps.shape_index);
-            ps.node           = nullptr;
-            ps.data           = nullptr;
+            this->node            = ps.node;
+            this->shape           = std::move(ps.shape);
+            this->data            = ps.data;
+            this->shape_index     = std::move(ps.shape_index);
+            this->TotalLength     = ps.TotalLength;
+            this->Dimensions      = ps.Dimensions;
+            this->Dimensions_Size = ps.Dimensions_Size;
+            ps.node               = nullptr;
+            ps.data               = nullptr;
+            ps.Dimensions         = nullptr;
+            ps.TotalLength        = 0;
             return *this;
         }
 
         bool operator==(const Tensor &ps) const
         {
             return ps.Size() == this->Size() &&
-                   ps.shape() == this->shape &&
+                   ps.shape == this->shape &&
                    memcmp(this->data, ps.data, this->Size() * sizeof(T)) == 0;
         }
 
@@ -286,7 +338,7 @@ namespace AIMethod {
          */
         inline Tensor Clone() const
         {
-            return this->node == nullptr ? Tensor() : Tensor(this->node->shape, this->node->data);
+            return this->node == nullptr ? Tensor() : Tensor(this->shape, this->data);
         }
 
         inline T *Value()
@@ -297,45 +349,6 @@ namespace AIMethod {
         inline const T *Value() const
         {
             return this->data;
-        }
-
-        /**
-         * @brief    重新设置形状
-         * @param    shape
-         * @return   true
-         * @return   false
-         * @author   CXS (chenxiangshu@outlook.com)
-         * @date     2024-01-11
-         */
-        bool ReShape(std::vector<int> &shape)
-        {
-            if (shape.size() == 0) {
-                this->Separation();
-                return true;
-            }
-            auto s   = this->Size();
-            auto r   = 1;
-            int  idx = -1;
-            for (size_t i = 0; i < shape.size(); i++) {
-                if (shape[i] == 0) {
-                    r = 0;
-                    break;
-                }
-                if (shape[i] < 0) {
-                    if (idx >= 0)
-                        return false;
-                    idx = i;
-                } else
-                    r *= shape[i];
-            }
-            if (r == 0) {
-                this->Separation();
-                return true;
-            }
-            if (r > s || (idx >= 0 && (s % r))) return false;
-            this->shape = shape;
-            if (idx >= 0) this->shape[idx] = s / r;
-            return true;
         }
 
     private:
@@ -382,6 +395,21 @@ namespace AIMethod {
             idx = GetIdx(idx, vl);
             va_end(vl);
             return idx;
+        }
+
+        inline int GetIdx(int d1, int d2) const
+        {
+            return d1 * this->shape_index[0] + d2;
+        }
+
+        inline int GetIdx(int d1, int d2, int d3) const
+        {
+            return d1 * this->shape_index[0] + d2 * this->shape_index[1] + d3;
+        }
+
+        inline int GetIdx(int d1, int d2, int d3, int d4) const
+        {
+            return d1 * this->shape_index[0] + d2 * this->shape_index[1] + d3 * this->shape_index[2] + d4;
         }
 
         /**
@@ -497,22 +525,33 @@ namespace AIMethod {
         }
 
     private:
-        Tensor _Slice(size_t idx, const std::vector<int> &shape) const
+        Tensor _Slice(size_t idx, const std::vector<int> &_shape) const
         {
             auto s = this->Size();
             if (idx >= s || s == 0)
                 return Tensor();
-            size_t r = 1;
-            for (auto &v : shape) {
-                if (v <= 0)
-                    return Tensor();
+            size_t r     = 1;
+            int    r_idx = -1;
+            auto   shape = _shape;
+            for (size_t i = 0; i < shape.size(); i++) {
+                auto v = shape[i];
+                if (v <= 0) {
+                    if (r_idx >= 0) return Tensor();
+                    r_idx = i;
+                }
                 r *= v;
             }
             if (r + idx > s) return Tensor();
+            if (r_idx >= 0) {
+                s -= idx;
+                if (s % r) return Tensor();
+                shape[r_idx] = s / r;
+                r            = s;
+            }
             Tensor ret;
             if (this->node == nullptr && this->data != nullptr) {
-                ret.node = new Node();
-                ret.data = std::vector<T>(this->data + idx, this->data + r);
+                ret.node = new Node(this->data + idx, r);
+                ret.data = ret.node->data.data();
             } else {
                 ret.node = this->node;
                 ret.node->ref_count.fetch_add(1);
@@ -550,6 +589,98 @@ namespace AIMethod {
             return _Slice(idx, shape);
         }
 
+    private:
+        void _Broadcast(T         *dst,
+                        const int *dst_dim,
+                        const int *dst_dim_index,
+                        size_t     dst_dims,
+                        const T   *src,
+                        const int *src_dim,
+                        const int *src_dim_index,
+                        size_t     src_dims) const
+        {
+            if (dst_dims > src_dims) {
+                auto n  = dst_dims - src_dims;
+                int  s  = dst_dim[0] * dst_dim_index[0];
+                int  bs = dst_dim[n] * dst_dim_index[n];
+                s       = s / bs;
+                for (int i = 0; i < s; i++)
+                    _Broadcast(dst + i * bs,
+                               dst_dim + n,
+                               dst_dim_index + n,
+                               dst_dims - n,
+                               src,
+                               src_dim,
+                               src_dim_index,
+                               src_dims);
+            } else {
+                int n = dst_dim[0] / src_dim[0];
+                if (src_dims > 1 && memcmp(dst_dim + 1, src_dim + 1, (dst_dims - 1) * sizeof(int)) == 0) {
+                    int bs = src_dims == 1 ? 1 : src_dim_index[0];
+                    for (int i = 0; i < n; i++)
+                        memcpy(dst + i * bs, src, bs * sizeof(T));
+                } else if (src_dims > 2) {
+                    n = dst_dim[0];
+                    for (int i = 0; i < n; i++)
+                        _Broadcast(dst + i * dst_dim_index[0],
+                                   dst_dim + 1,
+                                   dst_dim_index + 1,
+                                   dst_dims - 1,
+                                   src + (i % src_dim[0]) * src_dim_index[0],
+                                   src_dim + 1,
+                                   src_dim_index + 1,
+                                   src_dims - 1);
+                } else {
+                    // 列复制
+                    for (int r = 0; r < dst_dim[0]; r++) {
+                        for (int c = 0; c < dst_dim[1]; c++)
+                            dst[r * dst_dim[1] + c] = src[r * src_dim[1]];
+                    }
+                }
+            }
+            return;
+        }
+
+    public:
+        /**
+         * @brief    广播
+         * @param    shape          形状
+         * @return   Tensor
+         * @author   CXS (chenxiangshu@outlook.com)
+         * @date     2024-01-15
+         */
+        Tensor Broadcast(const std::vector<int> &shape) const
+        {
+            if (shape.size() == 0 || shape.size() < this->GetShape().size())
+                return Tensor();
+            /* 如果两个数组的后缘维度（trailing dimension，即从末尾开始算起的维度）的轴长度相符，
+                或其中的一方的长度为1，则认为它们是广播兼容的。广播会在缺失和（或）长度为1的维度上进行。
+            */
+            auto &old_shape = this->GetShape();
+            for (size_t i = 0; i < shape.size() && i < this->GetShape().size(); i++) {
+                if (old_shape[old_shape.size() - i - 1] != 1 &&
+                    shape[shape.size() - i - 1] != old_shape[old_shape.size() - i - 1])
+                    RUN_ERR("Broadcast dimension error");
+            }
+            Tensor ret;
+            ret.shape = shape;
+            ret.MakeIndex();
+            ret.node = new Node();
+            ret.node->data.resize(ret.Size());
+            ret.data = ret.node->data.data();
+            // 一种是两个数组的维数不相等，但是它们的后缘维度的轴长相符（其实就是从后数的连续若干个维度数都相同）
+            // 一种是有一方的长度为1（其实就是如果从后数有维度不同，但是维度大小为1时，广播机制同样可以发挥作用）。
+            _Broadcast(ret.data,
+                       ret.shape.data(),
+                       ret.shape_index.data(),
+                       shape.size(),
+                       this->data,
+                       this->shape.data(),
+                       this->shape_index.data(),
+                       this->shape.size());
+            return ret;
+        }
+
         /**
          * @brief    清理
          * @author   CXS (chenxiangshu@outlook.com)
@@ -562,13 +693,29 @@ namespace AIMethod {
         }
     };
 
-    extern Tensor<float>  operator+(const Tensor<float> &a, float b);
-    extern Tensor<float>  operator+(float &a, const Tensor<float> b);
-    extern Tensor<float>  operator+(Tensor<float> &&a, float b);
-    extern Tensor<float>  operator+(float &a, Tensor<float> &&b);
-    extern Tensor<float> &operator+=(Tensor<float> &a, float b);
-    extern Tensor<float>  operator*(const Tensor<float> &a, float b);
-    extern Tensor<float>  operator*(Tensor<float> &&a, float b);
-    extern Tensor<float> &operator*=(Tensor<float> &a, float b);
+    class Operation {
+    private:
+        Operation() {}
+
+    public:
+        static const Operation &__get()
+        {
+            static Operation op;
+            return op;
+        }
+
+        Tensor<float> Mul(const Tensor<float> &a, const float b) const;
+        Tensor<float> Mul(Tensor<float> &&a, const float b) const;
+        // ax+b
+        Tensor<float> Mul(const float a, const Tensor<float> &x, const float b) const;
+        // ax+b
+        Tensor<float> Mul(const float a, Tensor<float> &&x, const float b) const;
+        Tensor<float> Mul(const Tensor<float> &a, const Tensor<float> &b) const;
+
+        Tensor<float> Add(const Tensor<float> &a, const Tensor<float> &b) const;
+    };
+
+    extern Operation op;
+
 }   // namespace AIMethod
 #endif   // __TENSOR_HPP__

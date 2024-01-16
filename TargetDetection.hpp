@@ -32,6 +32,7 @@ namespace AIMethod {
          */
         class Result {
         public:
+            int      index;        // 数据索引
             int      classId;      // 类别
             float    confidence;   // 置信度
             cv::Rect box;          // 盒子信息
@@ -49,7 +50,8 @@ namespace AIMethod {
          * @date     2024-01-10
          */
         std::vector<std::vector<TargetDetection::Result>> Yolo(const Tensor<float>                 &input,
-                                                               const std::vector<Tools::Letterbox> &lets);
+                                                               const std::vector<Tools::Letterbox> &lets,
+                                                               int                                  nm = 0) const;
 
         /**
          * @brief    画盒子

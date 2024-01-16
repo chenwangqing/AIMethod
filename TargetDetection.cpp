@@ -17,7 +17,8 @@ namespace AIMethod {
     }
 
     std::vector<std::vector<TargetDetection::Result>> TargetDetection::Yolo(const Tensor<float>                 &input,
-                                                                            const std::vector<Tools::Letterbox> &lets)
+                                                                            const std::vector<Tools::Letterbox> &lets,
+                                                                            int                                  nm) const
     {
         std::vector<std::vector<TargetDetection::Result>> result;
 
@@ -36,7 +37,7 @@ namespace AIMethod {
                 auto scores = detection + 5;
                 // 获取概率最大的一类
                 int classID = 0;
-                int cnt     = dims[2] - 5;
+                int cnt     = dims[2] - 5 - nm;
                 for (int n = 1; n < cnt; n++) {
                     if (scores[n] > scores[classID])
                         classID = n;
@@ -70,6 +71,7 @@ namespace AIMethod {
             auto                                &let = lets[k];
             for (auto idx : indices) {
                 TargetDetection::Result t;
+                t.index      = idx;
                 t.box        = let.Restore(boxs[idx]);   // 还原坐标
                 t.classId    = classIds[idx];
                 t.confidence = confidences[idx];

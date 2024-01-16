@@ -11,12 +11,14 @@ FILES=(Tools.cpp
     Tensor.cpp
     Ratiocinate.cpp
     TargetDetection.cpp
+    TargetSegmention.cpp
     main.cpp)
 
 # 编译标志
 CXX_FLAGS="-g -std=c++14 \
     -I/usr/local/include/onnxruntime \
-    -I/usr/local/include/opencv4 "
+    -I/usr/local/include/opencv4 \
+    -I/usr/include/eigen3"
 
 # 宏定义
 DEF_FLAGS="-DCFG_INFER_ENGINE=1"
