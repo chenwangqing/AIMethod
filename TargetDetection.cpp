@@ -26,12 +26,13 @@ namespace AIMethod {
         auto  data = input.Value();
         if (dims.size() != 3 || dims[2] <= 5 || lets.size() != dims[0])
             return result;
-        for (int64_t k = 0; k < dims[0]; k++, data += dims[1] * dims[2]) {
+        for (int k = 0; k < dims[0]; k++, data += dims[1] * dims[2]) {
             // 解析 x,y,w,h,目标框概率,类别0概率，类别1概率,...
             std::vector<cv::Rect> boxs;
             std::vector<int>      classIds;
             std::vector<float>    confidences;
-            for (int64_t i = 0; i < dims[1]; i++) {
+            std::vector<int>      indexs;
+            for (int i = 0; i < dims[1]; i++) {
                 auto detection = data + i * dims[2];
                 // 获取每个类别置信度
                 auto scores = detection + 5;
@@ -62,6 +63,7 @@ namespace AIMethod {
                 boxs.push_back(r);
                 classIds.push_back(classID);
                 confidences.push_back(confidence);
+                indexs.push_back(i);
             }
             // NMS处理
             std::vector<int>   indices;
@@ -71,7 +73,8 @@ namespace AIMethod {
             auto                                &let = lets[k];
             for (auto idx : indices) {
                 TargetDetection::Result t;
-                t.index      = idx;
+                t._index     = indexs[idx];
+                t._box       = boxs[idx];
                 t.box        = let.Restore(boxs[idx]);   // 还原坐标
                 t.classId    = classIds[idx];
                 t.confidence = confidences[idx];

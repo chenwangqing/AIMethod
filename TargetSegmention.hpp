@@ -1,6 +1,6 @@
 /**
  * @file     TargetSegmention.hpp
- * @brief    目标分割(未完成)
+ * @brief    目标分割
  * @author   CXS (chenxiangshu@outlook.com)
  * @version  1.0
  * @date     2024-01-15
@@ -27,18 +27,43 @@ namespace AIMethod {
          * @author   CXS (chenxiangshu@outlook.com)
          * @date     2024-01-09
          */
-        class Result : public TargetDetection::Result {
+        class Result {
         public:
-            cv::Mat mask;
+            int      classId;      // 类别
+            float    confidence;   // 置信度
+            cv::Rect box;          // 盒子信息
+            cv::Mat  mask;         // [CV_8UC1]掩码（只有盒子范围）
         };
 
+        /*
+        TargetDetection  det;
+        TargetSegmention seg;
+        auto             pred  = Tensor<float>::MakeConst(output_datas[0].shape, output_datas[0].data);
+        auto             proto = Tensor<float>::MakeConst(output_datas[1].shape, output_datas[1].data);
+        auto             rs    = seg.Yolo(det, pred, proto, lets);
+        if (rs.size() == imgs.size()) {
+            for (size_t i = 0; i < rs.size(); i++) {
+                for (auto &v : rs[i]) {
+                    // 获取轮廓
+                    std::vector<std::vector<cv::Point>> contours;
+                    cv::findContours(v.mask, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_TC89_KCOS);
+                    // 绘制
+                    cv::polylines(imgs[i](v.box), contours, true, colors[(color_idx++) % 8], 5);
+                    cv::imwrite(Tools::Format("./output/result-{0}.jpg", i).c_str(), imgs[i]);
+                }
+            }
+        }
+        */
+       
         /**
-         * @brief    Yolo检测
-         * @param    input          推理结果
-         * @param    lets           图像形变
-         * @return   std::vector<std::vector<TargetDetection::Result>>
+         * @brief    Yolo分割
+         * @param    det            检测对象
+         * @param    pred           预测值
+         * @param    proto          掩码原型
+         * @param    lets           图像变形
+         * @return   std::vector<std::vector<TargetSegmention::Result>>
          * @author   CXS (chenxiangshu@outlook.com)
-         * @date     2024-01-10
+         * @date     2024-01-17
          */
         std::vector<std::vector<TargetSegmention::Result>> Yolo(const TargetDetection               &det,
                                                                 const Tensor<float>                 &pred,

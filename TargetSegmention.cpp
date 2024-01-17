@@ -28,17 +28,17 @@ namespace AIMethod {
             Tensor<float>                         marks({(int)dets[i].size(), nm});
             Tensor<float>                         boxs({(int)dets[i].size(), 4});
             auto                                 &let = lets[i];
-            auto                                  mf  = ((float)mw / let.width);
-            auto                                  hf  = ((float)mh / let.height);
+            auto                                  mf  = ((float)mw / let.let_width);
+            auto                                  hf  = ((float)mh / let.let_height);
             for (size_t n = 0; n < dets[i].size(); n++) {
                 auto &v    = dets[i][n];
-                auto  idx  = pred.GetIdx(i, v.index, 0);
-                auto  mask = pred.Value() + idx + nm + 5;   // 最后的是mask
+                auto  idx  = pred.GetIdx(i, v._index, 0);
+                auto  mask = pred.Value() + idx + nc + 5;   // 最后的是mask
                 marks.CopyTo(marks.GetIdx(n, 0), mask, nm);
-                boxs.At(n, 0) = v.box.x * mf;
-                boxs.At(n, 1) = v.box.y * hf;
-                boxs.At(n, 2) = (v.box.x + v.box.width) * mf;
-                boxs.At(n, 3) = (v.box.y + v.box.height) * hf;
+                boxs.At(n, 0) = v._box.x * mf;
+                boxs.At(n, 1) = v._box.y * hf;
+                boxs.At(n, 2) = (v._box.x + v._box.width) * mf;
+                boxs.At(n, 3) = (v._box.y + v._box.height) * hf;
             }
 
             marks = op.Sigmoid(op.Mul(marks, proto_in)).Slice(0, {-1, mh, mw});
@@ -49,33 +49,33 @@ namespace AIMethod {
                 auto x2 = boxs.At(k, 2);
                 auto y2 = boxs.At(k, 3);
                 auto m  = marks.Slice(marks.GetIdx(k, 0, 0), {mh, mw});
-                for (int r = 0; r < mh; r++) {
-                    auto rv = m.Value() + m.GetIdx(r, 0);
-                    if (!(r >= y1 && r < y2)) {
-                        // 不在范围 整行设置0
-                        memset(rv, 0, sizeof(float) * mw);
-                        continue;
-                    }
-                    for (int c = 0; c < mw; c++) {
-                        if (!(c >= x1 && c < x2))
-                            rv[c] = 0;
-                    }
+
+                auto   &v = dets[i][k];
+                int     w = x2 - x1;
+                int     h = y2 - y1;
+                cv::Mat mask_roi(cv::Size2i{w, h}, CV_32F);
+                float  *data = (float *)mask_roi.data;
+                for (int r = 0; r < h; r++) {
+                    int  y  = r + y1;
+                    auto rv = m.Value() + m.GetIdx(y, 0) + (int)x1;
+                    auto p  = data + r * w;
+                    for (int c = 0; c < w; c++)
+                        p[c] = rv[c];
                 }
-                // 向上采样(双线性插值)
-                cv::Mat mask_img(cv::Size2i{mw, mh}, CV_32FC1);
-                memcpy(mask_img.data, m.Value(), m.Size() * sizeof(float));
+
+                cv::Mat thr;
                 cv::Mat out;
-                cv::resize(mask_img, out, cv::Size2i{let.width, let.height}, 0, 0, cv::INTER_LINEAR);
-                // 阈值
-                cv::Mat to;
-                cv::threshold(out, to, 0.5f, 255, cv::THRESH_BINARY);
-                to.convertTo(out, CV_8U);
+                // 向上采样(双线性插值)
+                cv::resize(mask_roi, out, cv::Size2i{v.box.width, v.box.height}, 0, 0, cv::INTER_LINEAR);
+                // 二值化
+                cv::threshold(out, thr, 0.50f, 255, cv::THRESH_BINARY);
+                thr.convertTo(mask_roi, CV_8UC1);
+
                 Result rs;
                 rs.box        = dets[i][k].box;
                 rs.classId    = dets[i][k].classId;
                 rs.confidence = dets[i][k].confidence;
-                rs.index      = dets[i][k].index;
-                rs.mask       = $(out);
+                rs.mask       = $(mask_roi);
                 rlist.push_back($(rs));
             }
             list.push_back($(rlist));

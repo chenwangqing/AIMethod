@@ -22,7 +22,7 @@ using namespace AIMethod;
 std::vector<Tools::Letterbox> lets;
 std::vector<cv::Mat>          imgs;
 
-#define IS_TARGETDETECTION 1
+#define IS_TARGETDETECTION 0
 
 static uint64_t GetMillisecond(void)
 {
@@ -55,6 +55,17 @@ static void ExecCallback(IRatiocinate                            *infer,
         }
 #else
         if (output_datas.size() == 2) {
+            cv::Scalar colors[8] = {
+                CV_RGB(250, 0, 0),
+                CV_RGB(0, 250, 0),
+                CV_RGB(0, 0, 250),
+                CV_RGB(0, 250, 250),
+                CV_RGB(250, 250, 0),
+                CV_RGB(250, 0, 250),
+                CV_RGB(210, 110, 110),
+                CV_RGB(50, 150, 250),
+            };
+            int              color_idx = 0;
             TargetDetection  det;
             TargetSegmention seg;
             auto             pred  = Tensor<float>::MakeConst(output_datas[0].shape, output_datas[0].data);
@@ -63,22 +74,12 @@ static void ExecCallback(IRatiocinate                            *infer,
             if (rs.size() == imgs.size()) {
                 for (size_t i = 0; i < rs.size(); i++) {
                     for (auto &v : rs[i]) {
-                        cv::Mat img(imgs[i].size(), CV_32FC3);
-                        // cv::bitwise_and(imgs[i], imgs[i], img, v.mask);
-                        auto s = img.rows * img.cols;
-                        auto p = imgs[i].data;
-                        auto m = v.mask.data;
-                        auto r = img.data;
-                        cv::imwrite("./output/mask.jpg", v.mask);
-                        auto t = v.mask.type();
-                        for (size_t j = 0; j < s; j++) {
-                            if (m[j]) {
-                                int ih                    = j / img.cols;
-                                int iw                    = j % img.cols;
-                                img.at<cv::Vec3f>(ih, iw) = imgs[i].at<cv::Vec3f>(ih, iw);
-                            }
-                        }
-                        cv::imwrite("./output/rs.jpg", img);
+                        // 获取轮廓
+                        std::vector<std::vector<cv::Point>> contours;
+                        cv::findContours(v.mask, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_TC89_KCOS);
+                        // 绘制
+                        cv::polylines(imgs[i](v.box), contours, true, colors[(color_idx++) % 8], 5);
+                        cv::imwrite(Tools::Format("./output/result-{0}.jpg", i).c_str(), imgs[i]);
                     }
                 }
             }
@@ -99,7 +100,7 @@ int main(int argc, char **argv)
     std::string              err;
     auto                     infer = Ratiocinate_Create();
     IRatiocinate::Parameters parameters;
-    parameters.model = "./onnx/yolov5s-640h640w.onnx";
+    parameters.model = "./onnx/yolov5s-seg.onnx";
     // parameters.model = "./best.onnx";
 #if CFG_INFER_ENGINE == INFER_ENGINE_ONNXRUNTIME
     parameters.threads = 2;
@@ -123,7 +124,7 @@ int main(int argc, char **argv)
     auto inputs = Tools::ImageBGRToNCHW(imgs, size, lets, err);
     inputs      = op.Mul($(inputs), 1 / 255.0f);
 
-    err = infer->ExecAsync({"images"}, {"output0"}, {inputs});
+    err = infer->ExecAsync({"images"}, {"output0", "output1"}, {inputs});
     inputs.Clear();
     while (infer->IsRun())
         sleep(1);

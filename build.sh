@@ -17,8 +17,7 @@ FILES=(Tools.cpp
 # 编译标志
 CXX_FLAGS="-g -std=c++14 \
     -I/usr/local/include/onnxruntime \
-    -I/usr/local/include/opencv4 \
-    -I/usr/include/eigen3"
+    -I/usr/local/include/opencv4"
 
 # 宏定义
 DEF_FLAGS="-DCFG_INFER_ENGINE=1"
@@ -26,7 +25,8 @@ DEF_FLAGS="-DCFG_INFER_ENGINE=1"
 # 连接标志
 LD_FLAGS="-L/usr/local/lib \
     -lonnxruntime -pthread \
-    -lopencv_core -lopencv_highgui -lopencv_imgproc -lopencv_imgcodecs -lopencv_dnn"
+    -lopencv_core -lopencv_highgui -lopencv_imgproc -lopencv_imgcodecs \
+    -lopencv_dnn -lopencv_stitching -lopencv_video -lopencv_photo"
 
 # -------------------------------------- 开始编译 --------------------------------------
 

@@ -32,7 +32,9 @@ namespace AIMethod {
          */
         class Result {
         public:
-            int      index;        // 数据索引
+            int      _index;   // 数据索引
+            cv::Rect _box;     // 原始盒子
+
             int      classId;      // 类别
             float    confidence;   // 置信度
             cv::Rect box;          // 盒子信息
