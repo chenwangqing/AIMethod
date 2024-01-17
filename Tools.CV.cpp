@@ -48,6 +48,13 @@ namespace Tools {
         scaled_box.y      = (box.y - this->_fill_height) / this->_r;
         scaled_box.width  = box.width / this->_r;
         scaled_box.height = box.height / this->_r;
+        // 避免越界
+        if (scaled_box.x < 0) scaled_box.x = 0;
+        if (scaled_box.y < 0) scaled_box.y = 0;
+        if (scaled_box.x > this->width) scaled_box.x = this->width;
+        if (scaled_box.y > this->height) scaled_box.y = this->height;
+        if (scaled_box.width + scaled_box.x > this->width) scaled_box.width = this->width - scaled_box.x;
+        if (scaled_box.height + scaled_box.y > this->height) scaled_box.height = this->height - scaled_box.y;
         return scaled_box;
     }
 

@@ -2,7 +2,7 @@
  * @file     Tools.CV.hpp
  * @brief    OpenCV工具
  * @author   CXS (chenxiangshu@outlook.com)
- * @version  1.0
+ * @version  1.1
  * @date     2024-01-08
  *
  * @copyright Copyright (c) 2024  Four-Faith
@@ -11,6 +11,7 @@
  * <table>
  * <tr><th>日期       <th>版本    <th>作者    <th>说明
  * <tr><td>2024-01-08 <td>1.0     <td>CXS     <td>创建
+ * <tr><td>2024-01-17 <td>1.1     <td>CXS     <td>修正Letterbox::Restore越界错误
  * </table>
  */
 #if !defined(__Tools_CV_hpp__)
