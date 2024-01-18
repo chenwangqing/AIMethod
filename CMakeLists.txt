@@ -59,6 +59,7 @@ set(CODE_SRCS
     Ratiocinate.cpp
     TargetDetection.cpp
     TargetSegmention.cpp
+    PoseEstimation.cpp
     main.cpp)
 
 # 头文件

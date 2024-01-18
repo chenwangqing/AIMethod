@@ -82,4 +82,18 @@ namespace AIMethod {
         }
         return list;
     }
+
+    void TargetSegmention::DrawBox(cv::Mat                                     &img,
+                                   const std::vector<TargetSegmention::Result> &result,
+                                   const cv::Scalar                            &color)
+    {
+        for (size_t i = 0; i < result.size(); i++) {
+            auto &box = result[i].box;
+            cv::rectangle(img, box, color, 2);
+            char str[255];
+            snprintf(str, 255, "%d(%.2f)", result[i].classId, result[i].confidence);
+            cv::putText(img, str, {box.x, box.y - 10}, cv::FONT_HERSHEY_SIMPLEX, 0.5, color);
+        }
+        return;
+    }
 }   // namespace AIMethod

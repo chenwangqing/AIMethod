@@ -54,7 +54,7 @@ namespace AIMethod {
             }
         }
         */
-       
+
         /**
          * @brief    Yolo分割
          * @param    det            检测对象
@@ -69,6 +69,18 @@ namespace AIMethod {
                                                                 const Tensor<float>                 &pred,
                                                                 const Tensor<float>                 &proto,
                                                                 const std::vector<Tools::Letterbox> &lets) const;
+
+        /**
+         * @brief    画盒子
+         * @param    img            图像
+         * @param    result         结果
+         * @param    color          颜色
+         * @author   CXS (chenxiangshu@outlook.com)
+         * @date     2024-01-10
+         */
+        static void DrawBox(cv::Mat                   &img,
+                            const std::vector<Result> &result,
+                            const cv::Scalar          &color = cv::Scalar(0, 0, 255));
     };
 }   // namespace AIMethod
 #endif   // __TargetSegmention_HPP__

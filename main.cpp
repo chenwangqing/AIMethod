@@ -10,6 +10,7 @@
 #include "TargetDetection.hpp"
 #include "TargetSegmention.hpp"
 #include "Ratiocinate.hpp"
+#include "PoseEstimation.hpp"
 
 #include <time.h>
 #include <unistd.h>
@@ -89,16 +90,9 @@ static void ExecCallback(IRatiocinate                            *infer,
     return;
 }
 
-int main(int argc, char **argv)
+void _TargetSegmention(IRatiocinate *infer)
 {
-    {
-        Tensor<float> a({1, 3}, {1, 2, 3});
-        Tensor<float> b({2, 3, 1}, {1, 2, 3, 4, 5, 6});
-        a      = a.Broadcast({2, 1, 3});
-        auto r = op.Mul(a, b);
-    }
     std::string              err;
-    auto                     infer = Ratiocinate_Create();
     IRatiocinate::Parameters parameters;
     parameters.model = "./onnx/yolov5s-seg.onnx";
     // parameters.model = "./best.onnx";
@@ -110,7 +104,7 @@ int main(int argc, char **argv)
 
     if (!err.empty()) {
         printf("ERR: %s\n", err.c_str());
-        return 0;
+        return;
     }
 
     imgs.push_back(cv::imread("./img/bus.jpg"));
@@ -126,6 +120,59 @@ int main(int argc, char **argv)
 
     err = infer->ExecAsync({"images"}, {"output0", "output1"}, {inputs});
     inputs.Clear();
+    return;
+}
+
+static void ExecCallback_PoseEstimation(IRatiocinate                            *infer,
+                                        const std::vector<std::string>          &input_names,
+                                        const std::vector<Tensor<float>>        &input_datas,
+                                        const std::vector<std::string>          &output_names,
+                                        const std::vector<IRatiocinate::Result> &output_datas,
+                                        void                                    *context,
+                                        const std::string                       &err)
+{
+    if (!err.empty()) {
+        printf("Err: %s", err.c_str());
+        return;
+    }
+    auto           detections = Tensor<float>::MakeConst(output_datas[0].shape, output_datas[0].data);
+    PoseEstimation pose;
+    auto           ret = pose.Yolo(detections, lets[0]);
+    pose.DrawBox(imgs[0], ret);
+    cv::imwrite("./output/result.jpg", imgs[0]);
+    return;
+}
+
+void _PoseEstimation(IRatiocinate *infer)
+{
+    std::string              err;
+    IRatiocinate::Parameters parameters;
+    parameters.model = "./onnx/yolov5s6_pose_640_ti_lite_54p9_82p2.onnx";
+    // parameters.model = "./best.onnx";
+#if CFG_INFER_ENGINE == INFER_ENGINE_ONNXRUNTIME
+    parameters.threads = 2;
+#endif
+    err             = infer->LoadModel(parameters);
+    infer->callback = ExecCallback_PoseEstimation;
+
+    if (!err.empty()) {
+        printf("ERR: %s\n", err.c_str());
+        return;
+    }
+
+    imgs.push_back(cv::imread("./img/zidane.jpg"));
+    cv::Size2i size(640, 640);
+    auto       inputs = Tools::ImageBGRToNCHW(imgs, size, lets, err);
+    inputs            = op.Mul($(inputs), 1 / 255.0f);
+
+    err = infer->ExecAsync({"images"}, {"detections"}, {inputs});
+    return;
+}
+
+int main(int argc, char **argv)
+{
+    auto infer = Ratiocinate_Create();
+    _PoseEstimation(infer);
     while (infer->IsRun())
         sleep(1);
     return 0;

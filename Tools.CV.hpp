@@ -32,10 +32,10 @@ namespace Tools {
         float _r           = 1.0f;
 
     public:
-        int width;    // 原图像
-        int height;   // 原图像
-        int let_width;// 变换后的图像
-        int let_height;// 变换后的图像
+        int width;        // 原图像
+        int height;       // 原图像
+        int let_width;    // 变换后的图像
+        int let_height;   // 变换后的图像
 
         /**
          * @brief    图像Letterbox处理
@@ -71,7 +71,8 @@ namespace Tools {
          * @author   CXS (chenxiangshu@outlook.com)
          * @date     2024-01-08
          */
-        cv::Rect Restore(const cv::Rect &box) const;
+        cv::Rect  Restore(const cv::Rect &box) const;
+        cv::Point Restore(const cv::Point &pt) const;
     };
 
     /**

@@ -58,6 +58,18 @@ namespace Tools {
         return scaled_box;
     }
 
+    cv::Point Letterbox::Restore(const cv::Point &pt) const
+    {
+        cv::Point r;
+        r.x = (pt.x - this->_fill_width) / this->_r;
+        r.y = (pt.y - this->_fill_height) / this->_r;
+        if (r.x < 0) r.x = 0;
+        if (r.y < 0) r.y = 0;
+        if (r.x > this->width) r.x = this->width;
+        if (r.y > this->height) r.y = this->height;
+        return r;
+    }
+
     AIMethod::Tensor<float> ImageBGRToNCHW(const std::vector<cv::Mat>    &imgs,
                                            const cv::Size2i              &size,
                                            std::vector<Tools::Letterbox> &lets,
