@@ -20,11 +20,10 @@ namespace AIMethod {
                                                                             const std::vector<Tools::Letterbox> &lets,
                                                                             int                                  nm) const
     {
-        std::vector<std::vector<TargetDetection::Result>> result;
-
-        auto &dims = input.GetShape();
-        auto  data = input.Value();
-        if (dims.size() != 3 || dims[2] <= 5 || lets.size() != dims[0])
+        auto  result = std::vector<std::vector<TargetDetection::Result>>();
+        auto &dims   = input.GetShape();
+        auto  data   = input.Value();
+        if (dims.size() != 3 || dims[2] <= 5 || (int)lets.size() != dims[0])
             return result;
         for (int k = 0; k < dims[0]; k++, data += dims[1] * dims[2]) {
             // 解析 x,y,w,h,目标框概率,类别0概率，类别1概率,...

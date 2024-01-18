@@ -24,7 +24,7 @@ std::vector<cv::Mat>          imgs;
 
 #define IS_TARGETDETECTION 0
 
-static uint64_t GetMillisecond(void)
+uint64_t GetMillisecond(void)
 {
     struct timeval ts = {0};
     gettimeofday(&ts, NULL);

@@ -43,8 +43,8 @@ namespace AIMethod {
     private:
         class Node {
         public:
-            std::vector<T>   data;
             std::atomic<int> ref_count;
+            std::vector<T>   data;
 
             Node() :
                 ref_count(1) {}
@@ -103,7 +103,7 @@ namespace AIMethod {
         }
 
         Tensor(const std::vector<int> &shape, const T *data, Node *node) :
-            shape(shape), data((T *)data), node(node)
+            node(node), shape(shape), data((T *)data)
         {
             MakeIndex();
         }

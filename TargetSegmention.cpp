@@ -43,7 +43,7 @@ namespace AIMethod {
 
             marks = op.Sigmoid(op.Mul(marks, proto_in)).Slice(0, {-1, mh, mw});
 
-            for (int k = 0; k < dets[i].size(); k++) {
+            for (size_t k = 0; k < dets[i].size(); k++) {
                 auto x1 = boxs.At(k, 0);
                 auto y1 = boxs.At(k, 1);
                 auto x2 = boxs.At(k, 2);
