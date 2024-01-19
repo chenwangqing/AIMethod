@@ -30,6 +30,7 @@
 #include <mutex>
 #include <string.h>
 #include "Define.h"
+#include "Algorithm.hpp"
 
 namespace AIMethod {
     /**
@@ -629,6 +630,76 @@ namespace AIMethod {
             return _Slice(idx, shape);
         }
 
+        /**
+         * @brief    改变形状
+         * @param    shape          形状
+         * @return   Tensor
+         * @author   CXS (chenxiangshu@outlook.com)
+         * @date     2024-01-18
+         */
+        inline Tensor ReShape(const std::vector<int> &shape)
+        {
+            return _Slice(0, shape);
+        }
+
+        /**
+         * @brief    改变形状
+         * @param    shape          形状
+         * @return   Tensor
+         * @author   CXS (chenxiangshu@outlook.com)
+         * @date     2024-01-18
+         */
+        inline const Tensor ReShape(const std::vector<int> &shape) const
+        {
+            return _Slice(0, shape);
+        }
+
+    private:
+        /**
+         * @brief    2D矩阵转置
+         * @return   MDMatrix
+         * @author   CXS (chenxiangshu@outlook.com)
+         * @date     2023-06-14
+         */
+        Tensor _T2d() const
+        {
+            if (this->shape.size() != 2)
+                RUN_ERR("Matrix transposition can only be a two-dimensional matrix");
+            Tensor m(this->shape);
+            int    rows = this->shape[0];
+            int    cols = this->shape[1];
+            auto   p    = this->Value();
+            auto   re   = m.Value();
+            for (int r = 0; r < rows; r++) {
+                for (int c = 0; c < cols; c++)
+                    re[r * cols + c] = p[c * cols + r];
+            }
+            return m;
+        }
+
+    public:
+        /**
+         * @brief    2D矩阵转置
+         * @return   MDMatrix
+         * @author   CXS (chenxiangshu@outlook.com)
+         * @date     2023-06-14
+         */
+        inline Tensor T2d()
+        {
+            return _T2d();
+        }
+
+        /**
+         * @brief    2D矩阵转置
+         * @return   MDMatrix
+         * @author   CXS (chenxiangshu@outlook.com)
+         * @date     2023-06-14
+         */
+        inline const Tensor T2d() const
+        {
+            return _T2d();
+        }
+
     private:
         void _Broadcast(T         *dst,
                         const int *dst_dim,
@@ -788,6 +859,26 @@ namespace AIMethod {
 
         Tensor<float> Sigmoid(const Tensor<float> &a) const;
         Tensor<float> Sigmoid(Tensor<float> &&a) const;
+
+        /**
+         * @brief     多乘 a[i] * b[i]
+         * @param    a
+         * @param    b
+         * @return   Tensor<float>
+         * @author   CXS (chenxiangshu@outlook.com)
+         * @date     2024-01-18
+         */
+        Tensor<float> Multiply(const Tensor<float> &a, const Tensor<float> &b) const;
+
+        /**
+         * @brief     多乘 a[i] * b[i]
+         * @param    a
+         * @param    b
+         * @return   Tensor<float>
+         * @author   CXS (chenxiangshu@outlook.com)
+         * @date     2024-01-18
+         */
+        Tensor<float> Multiply(Tensor<float> &&a, const Tensor<float> &b) const;
     };
 
     extern Operation op;

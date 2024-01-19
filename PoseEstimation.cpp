@@ -39,7 +39,6 @@ namespace AIMethod {
             return std::vector<Result>();
         // 进行检测 xywh 置信度 类别
         std::vector<Result> result;
-        cv::Mat             img = cv::imread("./img/bus.jpg");
         for (int i = 0; i < input.GetShape()[0]; i++) {
             Result rs;
             auto   data   = input.Value() + input.GetIdx(i, 0);
@@ -70,7 +69,6 @@ namespace AIMethod {
             }
             result.push_back(rs);
         }
-        cv::imwrite("./output/pk.jpg", img);
         return result;
     }
 

@@ -204,35 +204,43 @@ namespace AIMethod {
         return ret;
     }
 
-    /**
-     * @brief    Sigmoid $\frac{1}{1+e^{-x}}$
-     * @tparam T
-     * @param    v
-     * @param    result
-     * @param    size
-     * @author   CXS (chenxiangshu@outlook.com)
-     * @date     2023-06-14
-     */
-    template<typename T>
-    static void _Sigmoid(const T *v, T *result, int size)
-    {
-        for (int i = 0; i < size; i++)
-            result[i] = 1 / (1 + exp(-v[i]));
-        return;
-    }
-
     Tensor<float> Operation::Sigmoid(const Tensor<float> &a) const
     {
         Tensor<float> result(a.GetShape());
         if (a.Size() > 0)
-            _Sigmoid<float>(a.Value(), result.Value(), a.Size());
+            AL<float>::Sigmoid(a.Value(), result.Value(), a.Size());
         return result;
     }
 
     Tensor<float> Operation::Sigmoid(Tensor<float> &&a) const
     {
         if (a.Size() > 0)
-            _Sigmoid<float>(a.Value(), a.Value(), a.Size());
+            AL<float>::Sigmoid(a.Value(), a.Value(), a.Size());
+        return $(a);
+    }
+
+    template<typename T>
+    static void _Multiply(const T *a, const T *b, T *r, size_t size)
+    {
+        for (size_t i = 0; i < size; i++)
+            r[i] = a[i] * b[i];
+        return;
+    }
+
+    Tensor<float> Operation::Multiply(const Tensor<float> &a, const Tensor<float> &b) const
+    {
+        if (a.GetShape() != b.GetShape())
+            RUN_ERR("Multiply Dimensions need to be consistent");
+        Tensor<float> ret(a.GetShape());
+        _Multiply<float>(a.Value(), b.Value(), ret.Value(), ret.Size());
+        return ret;
+    }
+
+    Tensor<float> Operation::Multiply(Tensor<float> &&a, const Tensor<float> &b) const
+    {
+        if (a.GetShape() != b.GetShape())
+            RUN_ERR("Multiply Dimensions need to be consistent");
+        _Multiply<float>(a.Value(), b.Value(), a.Value(), a.Size());
         return $(a);
     }
 

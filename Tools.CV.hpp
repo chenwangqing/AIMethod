@@ -76,8 +76,62 @@ namespace Tools {
     };
 
     /**
+     * @brief    图像处理
+     * @author   CXS (chenxiangshu@outlook.com)
+     * @date     2024-01-19
+     */
+    class IMGProcess {
+    private:
+    public:
+        /**
+         * @brief    自适应直方图均衡
+         * @param    src            原图    [8UC1/16UC1]
+         * @param    dst            目标    [SRC]
+         * @param    limit          设置对比度限制的阈值
+         * @param    size           设置直方图均衡化的网格大小。输入图像将被分成大小相等的矩形块。
+         * @note     RGB图像转换为YCbCr并仅对Y通道进行直方图均衡化来实现彩色图像的均衡化
+         * @author   CXS (chenxiangshu@outlook.com)
+         * @date     2024-01-19
+         * @example
+            auto                 img = cv::imread("./img/zidane.jpg");
+            std::vector<cv::Mat> channels;
+            cv::cvtColor(img, img, cv::COLOR_BGR2YCrCb);
+            cv::split(img, channels);
+            Tools::IMGProcess::AdaptiveHistogramEqualization(channels[0], channels[0]);
+            cv::merge(channels, img);
+            cv::cvtColor(img, img, cv::COLOR_YCrCb2BGR);
+            cv::imwrite("./output/zidane.jpg", img);
+         */
+        static void AdaptiveHistogramEqualization(const cv::Mat    &src,
+                                                  cv::Mat          &dst,
+                                                  int               limit = 4,
+                                                  const cv::Size2i &size  = {8, 8});
+
+        /**
+         * @brief    伽马变换
+         * @param    src            原      [8UC1]
+         * @param    dst            目标    [8UC1]
+         * @param    gamma          小于1变亮 大于1变暗
+         * @author   CXS (chenxiangshu@outlook.com)
+         * @date     2024-01-19
+         */
+        static void AdjustGamma(const cv::Mat &src, cv::Mat &dst, float gamma);
+
+        /**
+         * @brief    自适应中值滤波器
+         * @param    src            原  [8U]
+         * @param    minSize        最小窗口
+         * @param    maxSize        最大窗口
+         * @return   cv::Mat
+         * @author   CXS (chenxiangshu@outlook.com)
+         * @date     2024-01-19
+         */
+        static cv::Mat AdaptiveMediaFilter(const cv::Mat &src, int minSize = 3, int maxSize = 7);
+    };
+
+    /**
      * @brief    图片转张量
-     * @param    imgs           图片列表
+     * @param    imgs           图片列表    [8UC3:BGR]
      * @param    size           转换大小
      * @param    lets           转换形变
      * @param    err            错误信息

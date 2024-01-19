@@ -70,6 +70,95 @@ namespace Tools {
         return r;
     }
 
+    void IMGProcess::AdaptiveHistogramEqualization(const cv::Mat    &src,
+                                                   cv::Mat          &out,
+                                                   int               limit,
+                                                   const cv::Size2i &size)
+    {
+        if (src.channels() != 1)
+            RUN_ERR("Only single channel images are accepted");
+        auto clahe = cv::createCLAHE();
+        clahe->setClipLimit(limit);
+        clahe->setTilesGridSize(size);
+        clahe->apply(src, out);
+        return;
+    }
+
+    void IMGProcess::AdjustGamma(const cv::Mat &src, cv::Mat &dst, float gamma)
+    {
+        if (src.type() != CV_8UC1)
+            RUN_ERR("Type must be CV_8UC1");
+        // 预处理
+        uint8_t table[255];
+        for (int i = 0; i < 255; i++)
+            table[i] = powf(i / 255.0f, gamma) * 255;
+        if (dst.size() != src.size())
+            dst = cv::Mat(src.size(), CV_8UC1);
+        // 应用
+        size_t s = src.rows * src.cols;
+        auto   p = (uint8_t *)src.data;
+        auto   r = (uint8_t *)dst.data;
+        for (size_t i = 0; i < s; i++)
+            r[i] = table[p[i]];
+        return;
+    }
+
+    // 自适应中值滤波窗口实现  // 图像 计算座标, 窗口尺寸和 最大尺寸
+    static uchar adaptiveProcess(const cv::Mat &im, int row, int col, int kernelSize, int maxSize)
+    {
+        std::vector<uchar> pixels;
+        for (int a = -kernelSize / 2; a <= kernelSize / 2; a++)
+            for (int b = -kernelSize / 2; b <= kernelSize / 2; b++) {
+                pixels.push_back(im.at<uchar>(row + a, col + b));
+            }
+        sort(pixels.begin(), pixels.end());
+        auto min = pixels[0];
+        auto max = pixels[kernelSize * kernelSize - 1];
+        auto med = pixels[kernelSize * kernelSize / 2];
+        auto zxy = im.at<uchar>(row, col);
+        if (med > min && med < max) {
+            // to B
+            if (zxy > min && zxy < max)
+                return zxy;
+            else
+                return med;
+        } else {
+            kernelSize += 2;
+            if (kernelSize <= maxSize)
+                return adaptiveProcess(im, row, col, kernelSize, maxSize);   // 增大窗口尺寸，继续A过程。
+            else
+                return med;
+        }
+    }
+
+    static cv::Mat _adaptiveMediaFilter(const cv::Mat &src, int minSize, int maxSize)
+    {
+        cv::Mat dst;
+        // 扩展图像的边界
+        cv::copyMakeBorder(src, dst, maxSize / 2, maxSize / 2, maxSize / 2, maxSize / 2, cv::BorderTypes::BORDER_REFLECT);
+        // 图像循环
+        for (int j = maxSize / 2; j < dst.rows - maxSize / 2; j++) {
+            for (int i = maxSize / 2; i < dst.cols * dst.channels() - maxSize / 2; i++) {
+                dst.at<uchar>(j, i) = adaptiveProcess(dst, j, i, minSize, maxSize);
+            }
+        }
+        cv::Rect r = cv::Rect(cv::Point(maxSize / 2, maxSize / 2), cv::Point(dst.cols - maxSize / 2, dst.rows - maxSize / 2));
+        return dst(r);
+    }
+
+    cv::Mat IMGProcess::AdaptiveMediaFilter(const cv::Mat &src, int minSize, int maxSize)
+    {
+        if (src.channels() == 1)
+            return _adaptiveMediaFilter(src, minSize, maxSize);
+        std::vector<cv::Mat> channels;
+        cv::split(src, channels);
+        for (auto &ch : channels)
+            ch = _adaptiveMediaFilter(ch, minSize, maxSize);
+        cv::Mat dst;
+        cv::merge(channels, dst);
+        return dst;
+    }
+
     AIMethod::Tensor<float> ImageBGRToNCHW(const std::vector<cv::Mat>    &imgs,
                                            const cv::Size2i              &size,
                                            std::vector<Tools::Letterbox> &lets,

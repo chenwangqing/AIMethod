@@ -11,6 +11,7 @@
 #include "TargetSegmention.hpp"
 #include "Ratiocinate.hpp"
 #include "PoseEstimation.hpp"
+#include "Algorithm.hpp"
 
 #include <time.h>
 #include <unistd.h>
@@ -171,6 +172,24 @@ void _PoseEstimation(IRatiocinate *infer)
 
 int main(int argc, char **argv)
 {
+    {
+        int  arr[] = {5, 6, 3, 7, 8, 1, 6, 12, 13, 5, 4, -1};
+        auto v     = AL<int>::QuickMedian(arr, TAB_SIZE(arr));
+#if 0
+        auto                 img = cv::imread("./img/zidane.jpg");
+        std::vector<cv::Mat> channels;
+        cv::cvtColor(img, img, cv::COLOR_BGR2YCrCb);
+        cv::split(img, channels);
+        Tools::IMGProcess::AdjustGamma(channels[0], channels[0], 0.5);
+        cv::merge(channels, img);
+        cv::cvtColor(img, img, cv::COLOR_YCrCb2BGR);
+        cv::imwrite("./output/zidane.jpg", img);
+#else
+        auto img = cv::imread("./img/zidane.jpg");
+        img      = Tools::IMGProcess::AdaptiveMediaFilter(img);
+        cv::imwrite("./output/zidane.jpg", img);
+#endif
+    }
     auto infer = Ratiocinate_Create();
     _PoseEstimation(infer);
     while (infer->IsRun())
