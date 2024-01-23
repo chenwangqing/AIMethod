@@ -28,6 +28,7 @@ namespace AIMethod {
             Status      *sta   = static_cast<Status *>(user_data);
             Ratiocinate *infer = dynamic_cast<Ratiocinate *>(sta->infer);
             Ort::Status  status(status_ptr);
+            infer->is_runing.fetch_sub(1);
             if (infer->callback != nullptr) {
                 std::vector<Result> result;
                 if (status.IsOK()) {
@@ -59,7 +60,6 @@ namespace AIMethod {
                                     status.GetErrorMessage());
                 }
             }
-            infer->is_runing.fetch_sub(1);
             delete sta;
             return;
         }
@@ -222,6 +222,7 @@ namespace AIMethod {
             catch (std::exception &ex) {
                 err = ex.what();
             }
+            infer->is_runing.fetch_sub(1);
             if (infer->callback != nullptr) {
                 std::vector<Result> result;
                 for (size_t i = 0; i < output_datas.size(); i++) {
@@ -238,7 +239,6 @@ namespace AIMethod {
                                 infer->callback_context,
                                 err);
             }
-            infer->is_runing.fetch_sub(1);
             delete status;
             return;
         }

@@ -204,4 +204,124 @@ namespace Tools {
         return AIMethod::Tensor<float>({(int)imgs.size(), 3, size.height, size.width}, std::move(tmp));
     }
 
+    // --------------------------------------------------------------------------------
+    //                                FaceRecognize
+    // --------------------------------------------------------------------------------
+
+    Tools::FaceRecognize::FaceRecognize(const string &data_face, const string &data_eye, const string &data_mouth)
+    {
+        this->faceCascade.load(data_face);
+        if (!data_eye.empty()) this->eyesCascade.load(data_eye);
+        if (!data_mouth.empty()) this->mouthCascade.load(data_mouth);
+        return;
+    }
+
+    std::vector<FaceRecognize::Result> Tools::FaceRecognize::Recognize(const cv::Mat &img)
+    {
+        std::vector<FaceRecognize::Result> results;
+        if (img.empty())
+            return results;
+        std::vector<cv::Rect> faces;
+        // 检测人脸
+        this->faceCascade.detectMultiScale(img,
+                                           faces,
+                                           1.1,
+                                           2,
+                                           0 | cv::CASCADE_SCALE_IMAGE,
+                                           cv::Size(10, 10));
+        for (auto &face : faces) {
+            Result   ret;
+            cv::Rect eye[2];
+            auto     faceROI = img(face);
+            ret.faceBox      = face;
+            // 检测眼睛
+            if (!this->eyesCascade.empty()) {
+                std::vector<cv::Rect> boxs;
+                this->eyesCascade.detectMultiScale(faceROI,
+                                                   boxs,
+                                                   1.1,
+                                                   2,
+                                                   0 | cv::CASCADE_SCALE_IMAGE,
+                                                   cv::Size(5, 5));
+                for (size_t i = 0; i < 2 && i < boxs.size(); i++)
+                    eye[i] = boxs[i];
+            }
+            ret.leftEyeBox  = eye[0];
+            ret.rightEyeBox = eye[1];
+            // 检测嘴部
+            if (!this->eyesCascade.empty()) {
+                std::vector<cv::Rect> boxs;
+                this->mouthCascade.detectMultiScale(faceROI,
+                                                    boxs,
+                                                    1.1,
+                                                    2,
+                                                    0 | cv::CASCADE_SCALE_IMAGE,
+                                                    cv::Size(5, 5));
+                if (boxs.size() > 0) ret.mouthBox = boxs[0];
+            }
+            ret.isIntegrity = ret.mouthBox.area() > 0 &&
+                              ret.leftEyeBox.area() > 0 &&
+                              ret.rightEyeBox.area() > 0;
+            // 修正位置
+            if (ret.isIntegrity) {
+                // 计算嘴巴位置 A
+                int ax = ret.mouthBox.x + (ret.mouthBox.width >> 1);
+                int ay = ret.mouthBox.y + (ret.mouthBox.height >> 1);
+                // 计算眼睛位置
+                int bx = ret.leftEyeBox.x + (ret.leftEyeBox.width >> 1);
+                int cx = ret.rightEyeBox.x + (ret.rightEyeBox.width >> 1);
+                int by = ret.leftEyeBox.y + (ret.leftEyeBox.height >> 1);
+                int cy = ret.rightEyeBox.y + (ret.rightEyeBox.height >> 1);
+                // 向量AB与AC的叉积的结果
+                // AB=(bx-ax,by-ay)
+                double ans = (bx - ax) * (cx - ax) - (by - ay) * (cy - ay);
+                if (ans < 0) {
+                    // 顺时针,调换眼睛
+                    auto t          = ret.leftEyeBox;
+                    ret.leftEyeBox  = ret.rightEyeBox;
+                    ret.rightEyeBox = t;
+                }
+            }
+            if (ret.leftEyeBox.area() > 0) {
+                ret.leftEyeBox.x += ret.faceBox.x;
+                ret.leftEyeBox.y += ret.faceBox.y;
+            }
+            if (ret.rightEyeBox.area() > 0) {
+                ret.rightEyeBox.x += ret.faceBox.x;
+                ret.rightEyeBox.y += ret.faceBox.y;
+            }
+            if (ret.mouthBox.area() > 0) {
+                ret.mouthBox.x += ret.faceBox.x;
+                ret.mouthBox.y += ret.faceBox.y;
+            }
+            results.push_back($(ret));
+        }
+        return results;
+    }
+
+    void FaceRecognize::DrawBox(cv::Mat                   &img,
+                                const std::vector<Result> &results,
+                                const cv::Scalar           color_face,
+                                const cv::Scalar           color_eye,
+                                const cv::Scalar           color_mouth)
+    {
+        for (auto &ret : results) {
+            cv::rectangle(img, ret.faceBox, color_face, 2);
+            if (ret.leftEyeBox.area() > 0) {
+                int cx = ret.leftEyeBox.x + (ret.leftEyeBox.width >> 1) - 2;
+                int cy = ret.leftEyeBox.y + (ret.leftEyeBox.height >> 1) - 2;
+                cv::rectangle(img, ret.leftEyeBox, color_eye);
+                cv::putText(img, "L", cv::Point2i(cx, cy), cv::FONT_HERSHEY_SIMPLEX, 0.5, color_eye);
+            }
+            if (ret.rightEyeBox.area() > 0) {
+                int cx = ret.rightEyeBox.x + (ret.rightEyeBox.width >> 1) - 2;
+                int cy = ret.rightEyeBox.y + (ret.rightEyeBox.height >> 1) - 2;
+                cv::rectangle(img, ret.rightEyeBox, color_eye);
+                cv::putText(img, "R", cv::Point2i(cx, cy), cv::FONT_HERSHEY_SIMPLEX, 0.5, color_eye);
+            }
+            if (ret.mouthBox.area() > 0)
+                cv::rectangle(img, ret.mouthBox, color_mouth);
+        }
+        return;
+    }
 }   // namespace Tools

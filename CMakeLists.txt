@@ -41,9 +41,14 @@ set(EXTRA_LIBS
     libopencv_imgproc.so
     libopencv_imgcodecs.so
     libopencv_dnn.so
+    libopencv_flann.so
     libopencv_stitching.so
     libopencv_video.so
-    libopencv_photo.so)
+    libopencv_photo.so
+    libopencv_calib3d.so
+    libopencv_features2d.so
+    libopencv_ml.so
+    libopencv_objdetect.so)
 
 set(EXTRA_LIBS_DIR /usr/local/lib)
 

@@ -130,6 +130,52 @@ namespace Tools {
     };
 
     /**
+     * @brief    人脸识别
+     * @author   CXS (chenxiangshu@outlook.com)
+     * @date     2024-01-23
+     */
+    class FaceRecognize {
+    private:
+        cv::CascadeClassifier faceCascade;
+        cv::CascadeClassifier eyesCascade;
+        cv::CascadeClassifier mouthCascade;
+
+    public:
+        class Result {
+        public:
+            bool     isIntegrity = false;   // 完整的
+            cv::Rect faceBox;               // 脸部盒子信息
+            cv::Rect mouthBox;              // 嘴部盒子信息
+            cv::Rect leftEyeBox;            // 左眼盒子信息
+            cv::Rect rightEyeBox;           // 左眼盒子信息
+        };
+
+        FaceRecognize(const string &data_face, const string &data_eye = "", const string &data_mouth = "");
+
+        /**
+         * @brief    识别
+         * @param    img            CV_8U类型的矩阵，其中包含检测对象的图像。
+         * @return   std::vector<Result>
+         * @author   CXS (chenxiangshu@outlook.com)
+         * @date     2024-01-23
+         */
+        std::vector<Result> Recognize(const cv::Mat &img);
+
+        /**
+         * @brief    绘制盒子
+         * @param    img            图片
+         * @param    results        识别结果
+         * @author   CXS (chenxiangshu@outlook.com)
+         * @date     2024-01-23
+         */
+        static void DrawBox(cv::Mat                   &img,
+                            const std::vector<Result> &results,
+                            const cv::Scalar           color_face  = CV_RGB(0, 0, 255),
+                            const cv::Scalar           color_eye   = CV_RGB(0, 255, 0),
+                            const cv::Scalar           color_mouth = CV_RGB(255, 255, 0));
+    };
+
+    /**
      * @brief    图片转张量
      * @param    imgs           图片列表    [8UC3:BGR]
      * @param    size           转换大小
@@ -143,7 +189,6 @@ namespace Tools {
                                                   const cv::Size2i              &size,
                                                   std::vector<Tools::Letterbox> &lets,
                                                   std::string                   &err);
-
 }   // namespace Tools
 
 #endif   // __Tools_CV_hpp__

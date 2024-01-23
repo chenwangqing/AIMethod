@@ -142,5 +142,35 @@ namespace Tools {
         }
         return ss.str();
     }
+
+    /**
+     * @brief    分割字符串
+     * @param    s              字符串
+     * @param    c              分割符号
+     * @return   std::vector<std::string>
+     * @author   CXS (chenxiangshu@outlook.com)
+     * @date     2021-09-30
+     */
+    strings SplitString(const std::string &s, const std::string &c);
+
+    /**
+     * @brief    合并字符串
+     * @param    s              字符串列表
+     * @param    c              分割符号
+     * @return   std::string    字符串
+     * @author   CXS (chenxiangshu@outlook.com)
+     * @date     2021-09-30
+     */
+    std::string JoinString(const strings &s, const std::string &c);
+
+    /**
+     * @brief    获取文件列表
+     * @param    dir
+     * @return   strings
+     * @author   CXS (chenxiangshu@outlook.com)
+     * @date     2024-01-19
+     */
+    strings GetFiles(const std::string &dir, const std::string &suffix);
+
 }   // namespace Tools
 #endif   // __TOOLS_HPP_

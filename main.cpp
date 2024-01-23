@@ -170,29 +170,116 @@ void _PoseEstimation(IRatiocinate *infer)
     return;
 }
 
+class PoseEstimation_test {
+private:
+    strings          files;
+    int              idx   = -1;
+    IRatiocinate    *infer = nullptr;
+    cv::Mat          img;
+    Tools::Letterbox let;
+    const string     dir = "/home/work/yolo5-onnx/img/test1";
+
+    static void ExecCallback(IRatiocinate                            *infer,
+                             const std::vector<std::string>          &input_names,
+                             const std::vector<Tensor<float>>        &input_datas,
+                             const std::vector<std::string>          &output_names,
+                             const std::vector<IRatiocinate::Result> &output_datas,
+                             void                                    *context,
+                             const std::string                       &err)
+    {
+        PoseEstimation_test *ps = static_cast<PoseEstimation_test *>(context);
+        if (!err.empty()) {
+            printf("Err: %s", err.c_str());
+            exit(1);
+        }
+        auto           detections = Tensor<float>::MakeConst(output_datas[0].shape, output_datas[0].data);
+        PoseEstimation pose;
+        auto           ret = pose.Yolo(detections, ps->let);
+        pose.DrawBox(ps->img, ret);
+        cv::imwrite(Tools::Format("./output/test.{0}.jpg", ps->idx).c_str(), ps->img);
+        ps->Start();
+        return;
+    }
+
+public:
+    PoseEstimation_test(IRatiocinate *infer) :
+        infer(infer)
+    {
+        files = Tools::GetFiles(this->dir, "jpg");
+
+        std::string              err;
+        IRatiocinate::Parameters parameters;
+        parameters.model = "./onnx/yolov5s6_pose_640_ti_lite_54p9_82p2.onnx";
+        // parameters.model = "./best.onnx";
+#if CFG_INFER_ENGINE == INFER_ENGINE_ONNXRUNTIME
+        parameters.threads = 2;
+#endif
+        err                     = infer->LoadModel(parameters);
+        infer->callback         = this->ExecCallback;
+        infer->callback_context = this;
+
+        if (!err.empty()) {
+            printf("ERR: %s\n", err.c_str());
+            exit(1);
+        }
+        return;
+    }
+
+    void Start()
+    {
+        this->idx++;
+        if (this->idx > (int)this->files.size())
+            return;
+        char name[1024];
+        snprintf(name, sizeof(name), "%s/%s", this->dir.c_str(), this->files[this->idx].c_str());
+        this->img = cv::imread(name);
+        if (this->img.rows == 0)
+            RUN_ERR("Err");
+        cv::imshow("test", img);
+        while (true) sleep(1);
+        string                        err;
+        std::vector<Tools::Letterbox> lets;
+        cv::Size2i                    size(640, 640);
+
+        auto inputs = Tools::ImageBGRToNCHW({img}, size, lets, err);
+        inputs      = op.Mul($(inputs), 1 / 255.0f);
+        this->let   = lets[0];
+        err         = infer->ExecAsync({"images"}, {"detections"}, {inputs});
+        if (err != "")
+            RUN_ERR(err);
+        return;
+    }
+};
+
+void FaceRecognize_test()
+{
+    Tools::FaceRecognize face("/home/work/haar-cascade-files/haarcascade_frontalface_alt.xml",
+                              "/home/work/haar-cascade-files/haarcascade_eye.xml",
+                              "/home/work/haar-cascade-files/haarcascade_mcs_mouth.xml");
+    auto                 img = cv::imread("./img/sample1.jpg");
+    cv::Mat              gray;
+    // 转灰度
+   // cv::cvtColor(img, gray, cv::COLOR_BGR2GRAY);
+    // 直方图均衡
+   // cv::equalizeHist(gray, gray);
+    // 识别
+    auto ret = face.Recognize(img);
+    face.DrawBox(img, ret);
+    cv::imwrite("./output/face.jpg", img);
+    return;
+}
+
+
 int main(int argc, char **argv)
 {
-    {
-        int  arr[] = {5, 6, 3, 7, 8, 1, 6, 12, 13, 5, 4, -1};
-        auto v     = AL<int>::QuickMedian(arr, TAB_SIZE(arr));
-#if 0
-        auto                 img = cv::imread("./img/zidane.jpg");
-        std::vector<cv::Mat> channels;
-        cv::cvtColor(img, img, cv::COLOR_BGR2YCrCb);
-        cv::split(img, channels);
-        Tools::IMGProcess::AdjustGamma(channels[0], channels[0], 0.5);
-        cv::merge(channels, img);
-        cv::cvtColor(img, img, cv::COLOR_YCrCb2BGR);
-        cv::imwrite("./output/zidane.jpg", img);
-#else
-        auto img = cv::imread("./img/zidane.jpg");
-        img      = Tools::IMGProcess::AdaptiveMediaFilter(img);
-        cv::imwrite("./output/zidane.jpg", img);
+#if 1
+    FaceRecognize_test();
+#elif 0
+    auto                infer = Ratiocinate_Create();
+    PoseEstimation_test tmp(infer);
+    tmp.Start();
 #endif
-    }
-    auto infer = Ratiocinate_Create();
-    _PoseEstimation(infer);
-    while (infer->IsRun())
+    while (true)
         sleep(1);
     return 0;
 }
